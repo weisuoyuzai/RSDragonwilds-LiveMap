@@ -162,6 +162,11 @@ def main():
     tmp = tempfile.mkdtemp(prefix='livemap-test-')
     try:
         mod = stage(os.path.join(tmp, 'LiveMap'))
+        print('[package]')
+        files = [f for _dp, _dn, fn in os.walk(mod) for f in fn]
+        exe = [f for f in files if f.lower().endswith(('.exe', '.dll', '.bat', '.cmd', '.com', '.msi', '.scr', '.vbs'))]
+        check(not exe and not os.path.exists(os.path.join(mod, 'tools')),
+              f'mod package has no executables or tools ({len(files)} files)' + (f': {exe}' if exe else ''))
         test_compile(mod)
         test_runtime(mod)
         test_page(mod)

@@ -30,6 +30,7 @@
 |---|---|
 | `mod/LiveMap/` | 模组源码：`Scripts/*.lua`（UE4SS Lua）、`web/index.html`（地图网页）、`server.ps1`（本地网页服务器） |
 | `data/` | 从游戏提取的数据，打包时合并进模组：全地图物体（`Scripts/world_L_World.lua`）、来自游戏语言包的官方中英文名称（`Scripts/names.lua`）、图标路径表、地图底图、838 张图标 |
+| `tools/package/` | 可选工具包里的文件（`UpdateWorldData.bat`、术语清单、说明） |
 | `tools/WorldExtract/` | 基于 [CUE4Parse](https://github.com/FabianFG/CUE4Parse) 的 .NET 10 提取工具：World Partition 物体 → Lua 数据，贴图 → PNG 图标 |
 | `external/CUE4Parse/` | CUE4Parse 子模块（固定版本） |
 | `scripts/` | `build_package.py`（打包 / 开发安装）、`update_data.ps1`（重新生成 `data/`）、IoStore `.utoc` 目录读取 |
@@ -65,13 +66,14 @@ python scripts/build_package.py --version v1.0.0 --tools-dir build/tools
    再把模组 `web/data/` 里的新文件复制回 `data/web/data/`。
 4. `python tests/run_tests.py`，提交。
 
-玩家也可以用压缩包里的 `LiveMap/tools/UpdateWorldData.bat` 自己更新物体数据。
+玩家也可以用可选的工具包（`LiveMap-Tools-<版本>.zip`：`WorldExtract.exe` + `UpdateWorldData.bat`，源文件在 `tools/package/`）自己更新数据。工具包单独下载，模组压缩包里不含任何可执行文件（符合 Nexus Mods 要求）。
 
 ## CI / 发布
 
 - **CI**（`.github/workflows/ci.yml`）：每次推送/PR 跑离线测试（Lua 编译、模拟运行、网页和服务器脚本语法），并编译提取工具。
-- **发布**（`.github/workflows/release.yml`）：推送 `v1.0.0` 这样的标签 → 测试、编译自带运行时的 `WorldExtract.exe`、
-  生成 `LiveMap-RSDragonwilds-v1.0.0.zip` 并发布到 GitHub Release。手动运行只上传构建产物。
+- **发布**（`.github/workflows/release.yml`）：推送 `v1.0.0` 这样的标签 → 测试，然后在 GitHub Release 上发布两个压缩包：
+  `LiveMap-RSDragonwilds-v1.0.0.zip`（模组本体，不含可执行文件，上传 Nexus Mods 用这个）和
+  `LiveMap-Tools-v1.0.0.zip`（自带运行时的 `WorldExtract.exe` + `UpdateWorldData.bat`）。手动运行只上传构建产物。
 
 ## 许可
 

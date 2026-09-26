@@ -33,6 +33,7 @@ Full instructions (English and Chinese) are in [packaging/README.txt](packaging/
 |---|---|
 | `mod/LiveMap/` | Mod source: `Scripts/*.lua` (UE4SS Lua), `web/index.html` (map page), `server.ps1` (local web server) |
 | `data/` | Data extracted from the game, merged into the mod when packaging: full-map actors (`Scripts/world_L_World.lua`), official English/Chinese names from the game's language files (`Scripts/names.lua`), icon path table, map background images, 838 icons |
+| `tools/package/` | Files of the optional tools zip (`UpdateWorldData.bat`, term list, readme) |
 | `tools/WorldExtract/` | .NET 10 extractor built on [CUE4Parse](https://github.com/FabianFG/CUE4Parse): World Partition actors → Lua data, textures → PNG icons |
 | `external/CUE4Parse/` | CUE4Parse git submodule (pinned) |
 | `scripts/` | `build_package.py` (zip / dev install), `update_data.ps1` (regenerate `data/`), IoStore `.utoc` index reader |
@@ -80,14 +81,16 @@ python scripts/build_package.py --version v1.0.0 --tools-dir build/tools
    in-game map once (the mod exports it), and copy the new files from the mod's `web/data/` back into `data/web/data/`.
 4. `python tests/run_tests.py`, commit.
 
-Players can also refresh the actor data themselves with `LiveMap/tools/UpdateWorldData.bat` (shipped in the zip).
+Players can also refresh the data themselves with the optional tools zip (`LiveMap-Tools-<version>.zip`: `WorldExtract.exe` + `UpdateWorldData.bat`, sources in `tools/package/`). It is a separate download so the mod zip itself contains no executables (Nexus Mods friendly).
 
 ## CI / releases
 
 - **CI** (`.github/workflows/ci.yml`): offline tests (Lua compile, simulated run, page and server script parse)
   and an extractor build on every push / PR.
-- **Release** (`.github/workflows/release.yml`): push a tag like `v1.0.0` → tests, self-contained `WorldExtract.exe`,
-  `LiveMap-RSDragonwilds-v1.0.0.zip` attached to a GitHub release. Manual runs upload the zip as an artifact.
+- **Release** (`.github/workflows/release.yml`): push a tag like `v1.0.0` → tests, then two zips attached to a
+  GitHub release: `LiveMap-RSDragonwilds-v1.0.0.zip` (the mod, no executables - this is the one for Nexus Mods) and
+  `LiveMap-Tools-v1.0.0.zip` (self-contained `WorldExtract.exe` + `UpdateWorldData.bat`). Manual runs upload them as
+  artifacts.
 
 ## License
 

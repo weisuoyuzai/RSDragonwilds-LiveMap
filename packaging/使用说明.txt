@@ -57,10 +57,12 @@ LiveMap —— RuneScape: Dragonwilds（符文世界：龙之荒野）实时网�
 
 游戏更新后
 ----------
-如果游戏更新后地图物品位置不对或缺东西：
-  1. 进游戏按一次 Ctrl+小键盘6（UE4SS 会在 ue4ss 目录生成一个 .usmap 映射文件）。
-  2. 双击 LiveMap\tools\UpdateWorldData.bat，等约 1 分钟（会同时更新全地图数据和官方中英文名称）。
-  3. 重启游戏。
+如果游戏更新后地图物品位置不对或缺东西，先看看有没有 LiveMap 新版。也可以用可选的
+工具包自己重新生成数据（LiveMap-Tools-<版本>.zip，只在 GitHub 发布：https://github.com/weisuoyuzai/RSDragonwilds-LiveMap/releases）：
+  1. 把工具包解压到 LiveMap 文件夹里（得到 LiveMap\tools\UpdateWorldData.bat）。
+  2. 进游戏按一次 Ctrl+小键盘6（UE4SS 会在 ue4ss 目录生成一个 .usmap 映射文件）。
+  3. 双击 LiveMap\tools\UpdateWorldData.bat，等约 1 分钟（会同时更新全地图数据和官方中英文名称）。
+  4. 重启游戏。
 游戏大版本更新后 UE4SS 也可能需要更新到新的 experimental 版本。
 
 
@@ -77,6 +79,5 @@ LiveMap —— RuneScape: Dragonwilds（符文世界：龙之荒野）实时网�
 第三方组件
 ----------
 · 需配合 UE4SS 使用（MIT 许可）  https://github.com/UE4SS-RE/RE-UE4SS
-· tools\WorldExtract.exe 使用 CUE4Parse（Apache-2.0 许可，见 tools\CUE4Parse-LICENSE.txt / CUE4Parse-NOTICE.txt）
-  https://github.com/FabianFG/CUE4Parse
+· 地图数据用 CUE4Parse（Apache-2.0 许可）从游戏资源中提取  https://github.com/FabianFG/CUE4Parse
 · 地图、图标等美术资源版权归游戏开发商所有，仅供个人游玩辅助使用。

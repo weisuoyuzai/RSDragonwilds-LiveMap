@@ -68,11 +68,14 @@ Customization: categories, colors and icon rules are in LiveMap\Scripts\config.l
 
 After a game update
 -------------------
-If items are missing or in the wrong place after a game update:
-  1. In game press Ctrl+Numpad6 once (UE4SS writes a .usmap mappings file into the ue4ss folder).
-  2. Double-click LiveMap\tools\UpdateWorldData.bat and wait about a minute (it refreshes both the
+If items are missing or in the wrong place after a game update, first check for a newer LiveMap
+release. You can also regenerate the data yourself with the optional tools package
+(LiveMap-Tools-<version>.zip, only on GitHub: https://github.com/weisuoyuzai/RSDragonwilds-LiveMap/releases):
+  1. Extract it into your LiveMap folder (you get LiveMap\tools\UpdateWorldData.bat).
+  2. In game press Ctrl+Numpad6 once (UE4SS writes a .usmap mappings file into the ue4ss folder).
+  3. Double-click LiveMap\tools\UpdateWorldData.bat and wait about a minute (it refreshes both the
      full-map data and the official English / Chinese names).
-  3. Restart the game.
+  4. Restart the game.
 After a major game update UE4SS itself may also need a newer experimental build.
 
 
@@ -92,6 +95,6 @@ Troubleshooting
 Third-party components
 ----------------------
 - Requires UE4SS (MIT license)  https://github.com/UE4SS-RE/RE-UE4SS
-- tools\WorldExtract.exe uses CUE4Parse (Apache-2.0 license, see tools\CUE4Parse-LICENSE.txt
-  and tools\CUE4Parse-NOTICE.txt)  https://github.com/FabianFG/CUE4Parse
+- The map data was extracted from the game files with CUE4Parse (Apache-2.0)
+  https://github.com/FabianFG/CUE4Parse
 - Map and icon artwork belong to the game's developer; provided for personal play assistance only.

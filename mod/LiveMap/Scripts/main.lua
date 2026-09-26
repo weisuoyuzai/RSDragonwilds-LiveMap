@@ -173,6 +173,7 @@ do
     Icons.init({ dataDir = DataDir, valid = valid, log = log, config = Config, catDefaults = catDefaults,
         paths = dofile(ModDir .. "Scripts\\icon_paths.lua") })
 end
+local Sub = dofile(ModDir .. "Scripts\\subcats.lua")
 local LastIconVersion = -1
 local LastIconProcess = 0
 
@@ -254,7 +255,7 @@ local function loadWorldData(world)
         local cat = classify(cls, wd.classes)
         if cat then
             local icon, label = Icons.resolve(nil, cls, cat, extra)
-            local e = { c = cat, n = cls, x = x, y = y, z = z, i = icon, l = label }
+            local e = { c = cat, n = cls, x = x, y = y, z = z, i = icon, l = label, s = Sub.subOf(cls, cat, label) }
             wd.static[poiKey(cls, x, y, z)] = e
             local gk = gridKey(cls, math.floor(x / GRID), math.floor(y / GRID))
             wd.grid[gk] = wd.grid[gk] or {}
@@ -272,6 +273,7 @@ local function loadWorldData(world)
             elseif p.c ~= "landmark" then
                 p.c = classify(p.n, wd.classes, p.c)
                 p.i, p.l = Icons.resolve(nil, p.n, p.c)
+                p.s = Sub.subOf(p.n, p.c, p.l)
             end
         end
         SaveDirty = true
@@ -304,9 +306,10 @@ local function savePois()
     for world, list in pairs(Pois) do
         out[#out + 1] = string.format("[%q]={\n", world)
         for key, p in pairs(list) do
-            out[#out + 1] = string.format("[%q]={c=%q,n=%q,x=%.1f,y=%.1f,z=%.1f,t=%d%s%s},\n",
+            out[#out + 1] = string.format("[%q]={c=%q,n=%q,x=%.1f,y=%.1f,z=%.1f,t=%d%s%s%s},\n",
                 key, p.c, p.n, p.x, p.y, p.z, p.t,
-                p.i and string.format(",i=%q", p.i) or "", p.l and string.format(",l=%q", p.l) or "")
+                p.i and string.format(",i=%q", p.i) or "", p.l and string.format(",l=%q", p.l) or "",
+                p.s and string.format(",s=%q", p.s) or "")
         end
         out[#out + 1] = "},\n"
     end
@@ -322,15 +325,16 @@ local function addPoi(world, cat, cls, x, y, z, now, icon, label, keyName)
     if wd and (wd.static[key] or (not keyName and nearStatic(wd, cls, x, y))) then return end
     Pois[world] = Pois[world] or {}
     local p = Pois[world][key]
+    local sub = Sub.subOf(cls, cat, label)
     if not p then
-        Pois[world][key] = { c = cat, n = cls, x = x, y = y, z = z, t = now, i = icon, l = label }
+        Pois[world][key] = { c = cat, n = cls, x = x, y = y, z = z, t = now, i = icon, l = label, s = sub }
         PoiDirty = true
         SaveDirty = true
     else
         p.t = now
         p.c = cat
-        if p.i ~= icon or p.l ~= label or p.n ~= cls then
-            p.i, p.l, p.n = icon, label, cls
+        if p.i ~= icon or p.l ~= label or p.n ~= cls or p.s ~= sub then
+            p.i, p.l, p.n, p.s = icon, label, cls, sub
             PoiDirty = true
             SaveDirty = true
         end
@@ -377,7 +381,7 @@ local function scanCharacters(refresh)
                     local cat = cls:find("^BP_NPC_") and "npc" or "creature"
                     local icon = Icons.resolve(nil, cls, cat)
                     Icons.request(icon)
-                    creatures[#creatures + 1] = { c = cat, n = cls, x = x, y = y, z = z, i = icon }
+                    creatures[#creatures + 1] = { c = cat, n = cls, x = x, y = y, z = z, i = icon, s = Sub.subOf(cls, cat) }
                 end
             end
         end

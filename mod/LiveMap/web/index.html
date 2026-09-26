@@ -34,6 +34,14 @@
   .cat .sw i { width: 10px; height: 10px; border-radius: 50%; display: block; box-shadow: 0 0 0 2px #0006; }
   .cat .name { flex: 1; }
   .cat .n { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .cat .tw { width: 14px; flex: none; color: var(--muted); text-align: center; cursor: pointer; border-radius: 4px; }
+  .cat .tw:hover { background: var(--line); color: var(--text); }
+  .cat.sub { padding-left: 28px; font-size: 12px; gap: 6px; }
+  .cat.sub .sw { width: 18px; height: 18px; }
+  .cat.sub .sw img { width: 18px; height: 18px; }
+  .cat.sub .sw i { width: 8px; height: 8px; }
+  .subtools { padding: 2px 0 4px 34px; font-size: 12px; display: flex; gap: 10px; }
+  .subtools a { color: var(--accent); cursor: pointer; }
   .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 4px 0; }
   label.chk { display: flex; gap: 6px; align-items: center; cursor: pointer; }
   button, input[type=text], select { font: inherit; color: var(--text); background: var(--panel-2);
@@ -103,6 +111,10 @@
   let live = null, pois = {}, poiVersion = -1, lastOk = 0;
   let staticPois = [], staticKey = null, merged = null;   // 全地图数据 (模组从游戏资源提取)
   const hidden = new Set(store.get('hidden', []));
+  const hiddenSub = new Set(store.get('hiddenSub', []));    // "分类|细分"
+  // 链接里 ?expand=anima,gather 可以指定默认展开的分类
+  const expanded = new Set(new URLSearchParams(location.search).get('expand')?.split(',') ?? store.get('expanded', []));
+  const subHidden = p => p.s && hiddenSub.has(p.c + '|' + p.s);
   const view = { scale: store.get('scale', 0.02), cx: 0, cy: 0, rot: store.get('rot2', 0), flip: store.get('flip2', false) };
   let follow = !new URLSearchParams(location.search).has('fit'), needsFit = true, alignMode = false;
   let bgImg = null, bg = { x: 0, y: 0, s: 100 };
@@ -249,13 +261,13 @@
     const q = $('search').value.trim().toLowerCase();
     const list = [];
     for (const p of worldPois()) {
-      if (hidden.has(p.c)) continue;
+      if (hidden.has(p.c) || subHidden(p)) continue;
       if (q && !p.n.toLowerCase().includes(q)) continue;
       list.push(p);
     }
     // 实时数据: 附近的生物/NPC, 游戏地图标记 (任务目标等, 会移动所以不存档)
     for (const c of liveExtras()) {
-      if (hidden.has(c.c)) continue;
+      if (hidden.has(c.c) || subHidden(c)) continue;
       if (q && !c.n.toLowerCase().includes(q)) continue;
       list.push({ ...c, dyn: true });
     }
@@ -265,20 +277,66 @@
 
   // ---------- 侧栏 ----------
   function renderCats() {
-    const counts = {};
-    for (const p of worldPois()) counts[p.c] = (counts[p.c] || 0) + 1;
-    for (const c of liveExtras()) counts[c.c] = (counts[c.c] || 0) + 1;
+    const counts = {}, subs = {};
+    for (const p of [...worldPois(), ...liveExtras()]) {
+      counts[p.c] = (counts[p.c] || 0) + 1;
+      if (!p.s) continue;
+      const m = subs[p.c] || (subs[p.c] = new Map());
+      const e = m.get(p.s) || { n: 0, icon: p.i };
+      e.n++; m.set(p.s, e);
+    }
+    const saveSub = () => { store.set('hiddenSub', [...hiddenSub]); renderCats(); dirty = true; };
+    const swatch = (icon, color) => { const im = ready(icon); return im ? `<img src="${im.src}" alt="">` : `<i style="background:${color}"></i>`; };
     const box = $('cats');
     box.innerHTML = '';
     for (const c of categories) {
+      const list = subs[c.id] ? [...subs[c.id]].sort((a, b) => b[1].n - a[1].n) : [];
+      const canExpand = list.length > 1;
+      const open = canExpand && expanded.has(c.id);
       const el = document.createElement('div');
       el.className = 'cat' + (hidden.has(c.id) ? ' off' : '');
-      const im = ready(c.icon);
-      el.innerHTML = `<span class="sw">${im ? `<img src="${im.src}" alt="">` : `<i style="background:${c.color}"></i>`}</span>` +
-        `<span class="name"></span><span class="n">${counts[c.id] || 0}</span>`;
+      el.innerHTML = `<span class="tw" title="展开细分">${canExpand ? (open ? '▾' : '▸') : ''}</span>` +
+        `<span class="sw">${swatch(c.icon, c.color)}</span><span class="name"></span><span class="n">${counts[c.id] || 0}</span>`;
       el.querySelector('.name').textContent = c.label;
       el.onclick = () => { hidden.has(c.id) ? hidden.delete(c.id) : hidden.add(c.id); store.set('hidden', [...hidden]); renderCats(); dirty = true; };
+      if (canExpand) {
+        el.querySelector('.tw').onclick = e => {
+          e.stopPropagation();
+          expanded.has(c.id) ? expanded.delete(c.id) : expanded.add(c.id);
+          store.set('expanded', [...expanded]); renderCats();
+        };
+      }
       box.appendChild(el);
+      if (!open) continue;
+
+      const tools = document.createElement('div');
+      tools.className = 'subtools';
+      tools.innerHTML = '<a data-a="all">全选</a><a data-a="none">全不选</a>';
+      tools.onclick = e => {
+        const a = e.target.dataset.a; if (!a) return;
+        for (const [name] of list) a === 'all' ? hiddenSub.delete(c.id + '|' + name) : hiddenSub.add(c.id + '|' + name);
+        if (a === 'all') hidden.delete(c.id), store.set('hidden', [...hidden]);
+        saveSub();
+      };
+      box.appendChild(tools);
+      for (const [name, e] of list) {
+        const key = c.id + '|' + name;
+        const row = document.createElement('div');
+        row.className = 'cat sub' + (hidden.has(c.id) || hiddenSub.has(key) ? ' off' : '');
+        row.innerHTML = `<span class="sw">${swatch(e.icon, c.color)}</span><span class="name"></span><span class="n">${e.n}</span>`;
+        row.querySelector('.name').textContent = name;
+        row.onclick = () => {
+          if (hidden.has(c.id)) {   // 分类整体隐藏时点细分: 打开分类, 只显示这一项
+            hidden.delete(c.id); store.set('hidden', [...hidden]);
+            for (const [n2] of list) hiddenSub.add(c.id + '|' + n2);
+            hiddenSub.delete(key);
+          } else {
+            hiddenSub.has(key) ? hiddenSub.delete(key) : hiddenSub.add(key);
+          }
+          saveSub();
+        };
+        box.appendChild(row);
+      }
     }
   }
   let lastCatRender = 0;
@@ -422,7 +480,7 @@
   function titleOf(p) {
     const cat = catById[p.c];
     if (p.c === 'landmark') return markerName(p.n) || prettyName(p.n);
-    if (p.l) return (cat ? cat.label + ' · ' : '') + p.l;
+    if (p.l || p.s) return (cat ? cat.label + ' · ' : '') + (p.l || p.s);
     return prettyName(p.n);
   }
 
@@ -524,7 +582,7 @@
     tip.innerHTML = p.player
       ? `<div class="t">${esc(p.name || '玩家')}${p.me ? '（你）' : ''}</div>`
       : `<div class="t" style="color:${cat ? cat.color : '#fff'}">${(() => { const ic = iconOf(p); return ic ? `<img src="${ic.img.src}" alt="">` : ''; })()}` +
-        `<span>${esc(p.c === 'landmark' ? titleOf(p) : (cat ? cat.label : p.c) + ' · ' + (p.l || prettyName(p.n)))}</span></div>` +
+        `<span>${esc(p.c === 'landmark' ? titleOf(p) : (cat ? cat.label : p.c) + ' · ' + (p.l || p.s || prettyName(p.n)))}</span></div>` +
         `<div class="s">${esc(p.n)}</div>` +
         `<div class="s">坐标 ${(p.x / 100).toFixed(0)}, ${(p.y / 100).toFixed(0)}, ${(p.z / 100).toFixed(0)} m` +
         (dist != null ? ` · 距离 ${dist.toFixed(0)} m` : '') + (p.dyn ? '' : p.st ? '' : ' · 游戏里扫描到') + `</div>`;

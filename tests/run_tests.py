@@ -68,6 +68,20 @@ def test_runtime(mod):
     geysers = [p for p in static if p['c'] == 'geyser']
     check(all(not p['n'].startswith('BP_OreNode') for p in geysers), 'geysers not swallowed by ore category')
 
+    subs = {}
+    for p in static:
+        if p.get('s'):
+            subs.setdefault(p['c'], Counter())[p['s']] += 1
+    check(len(subs.get('anima', {})) == 7, f'anima split by rune: {sorted(subs.get("anima", {}))}')
+    for cat, expect in [('gather', {'灵元树皮', '苦帽菇', '洋葱', '石块'}), ('ore', {'秘银矿', '铁矿', '煤矿', '符文精华'}),
+                        ('stone', {'砂岩', '花岗岩', '石头'}), ('chest', {'野外宝箱 T6', '埋藏宝箱 T7'}),
+                        ('fishing', {'网捕 · Fellhollow', '钓竿 · Brynmoor'}), ('teleporter', {'宝库入口'})]:
+        got = set(subs.get(cat, {}))
+        check(expect <= got, f'{cat} sub-categories include {sorted(expect)}' + ('' if expect <= got else f' (got {sorted(got)[:12]})'))
+    for cat, c in subs.items():
+        other = c.get('其他', 0)
+        check(other <= sum(c.values()) * 0.02, f'{cat}: {len(c)} sub-categories, {other} unmatched')
+
     dyn = load('pois.json')['worlds'].get('L_World', [])
     names = [p['n'] for p in dyn]
     check('BP_BaseBuilding_Bed_C' in names, 'player-built bed recorded by live scan')

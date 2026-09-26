@@ -43,6 +43,11 @@ def test_compile(mod):
 
 def test_runtime(mod):
     print('[main.lua with simulated UE4SS]')
+    # 旧版本的存档: 里面有被当成地点存下来的队友箭头, 应在加载时清掉
+    with open(os.path.join(mod, 'saved_pois.lua'), 'w', encoding='utf-8') as f:
+        f.write('return {\n["L_World"]={\n'
+                '["MapIcon|1236|1279|0"]={c="landmark",n="T_Map_Icon_FriendArrow_1",x=123610.0,y=127897.0,z=0.0,t=1,'
+                'i="T_Map_Icon_FriendArrow_1"},\n},\n}\n')
     lua = lupa.LuaRuntime()
     run = lua.eval('function(src, mod) return load(src, "@harness")(mod) end')
     logs = run(open(os.path.join(ROOT, 'tests', 'harness.lua'), encoding='utf-8').read(), mod + os.sep)
@@ -79,6 +84,10 @@ def test_runtime(mod):
     live = load('live.json')
     check(live['world'] == 'L_World' and live['players'] and live['players'][0]['me'], 'live.json has local player')
     check(live.get('staticVersion', 0) > 0, 'live.json announces full-map data')
+    marker_names = [m['n'] for m in live.get('markers', [])]
+    check('T_NavIcons_QuestMarker' in marker_names, 'game map markers are sent live')
+    check(not any('Friend' in n for n in marker_names), 'teammate arrows are not treated as map markers')
+    check(not any(p['c'] == 'landmark' for p in dyn), 'map markers are not persisted (old saved ones purged)')
 
     maps = load('maps_L_World.json')
     for m in maps:

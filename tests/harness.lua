@@ -33,7 +33,24 @@ local bed = obj({
     GetWorld = function() return world end, GetClass = function() return cls("BP_BaseBuilding_Bed_C") end,
 })
 
+-- 游戏大地图标记: 队友箭头 (应忽略) 和任务目标 (应作为实时标记)
+local mapIcons = obj({ GetClass = function() return cls("MinimapPluginMapIcons") end })
+local function marker(tex, x, y)
+    return obj({
+        GetOwner = function() return mapIcons end,
+        IconTexture = obj({
+            GetFName = function() return fname(tex) end,
+            GetFullName = function() return "Texture2D /Game/Art/UI/NavIcons/" .. tex .. "." .. tex end,
+        }),
+        bIconVisible = true,
+        K2_GetComponentLocation = function() return { X = x, Y = y, Z = 0 } end,
+        GetWorld = function() return world end,
+    })
+end
+local markers = { marker("T_Map_Icon_FriendArrow_1", 7000, 190000), marker("T_NavIcons_QuestMarker", 8000, 191000) }
+
 FindAllOf = function(name)
+    if name == "MapIconComponent" then return markers end
     if name == "PlayerController" then return { pc } end
     if name == "Character" then return { pawn } end
     if name == "AnimaVent" or name == "BP_AnimaVent_C" then return { vent } end

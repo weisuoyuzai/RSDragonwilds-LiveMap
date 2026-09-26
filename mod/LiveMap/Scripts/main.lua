@@ -193,7 +193,8 @@ end
 -- 游戏地图标记里跟全地图数据重复的 (地牢入口/神殿/敏捷赛道/兔子地道) 以及玩家自己/占位图标, 不显示
 local SKIP_MARKERS = { T_NavIcons_Player_Self = true, T_Icon_Placeholder = true }
 local function skipMarker(name)
-    return SKIP_MARKERS[name] or name:find("DungeonEntrance") or name:find("HealthAltar")
+    return SKIP_MARKERS[name] or name:find("Friend") or name:find("Player")
+        or name:find("DungeonEntrance") or name:find("HealthAltar")
         or name:find("Agility") or name:find("Kebbit") or name:find("Lodestone")
 end
 
@@ -288,7 +289,7 @@ local function loadSaved()
         Pois = t
         for _, list in pairs(Pois) do
             for k, p in pairs(list) do
-                if p.c == "landmark" and skipMarker(p.n) then list[k] = nil end
+                if p.c == "landmark" then list[k] = nil end   -- 旧版本存下来的地图标记, 现在改为实时数据
             end
         end
         local n = 0
@@ -386,8 +387,10 @@ end
 
 -- 游戏大地图上自带的标记 (MinimapPlugin 的 MapIconComponent): 地牢入口/神殿/敏捷赛道/兔子地道等
 local LastMarkerScan = 0
+local Markers = {}            -- 游戏地图标记, 每次扫描整体替换 (会移动/变化, 不存档)
 
-local function scanGameMarkers(now)
+local function scanGameMarkers()
+    local list = {}
     for _, c in ipairs(FindAllOf("MapIconComponent") or {}) do
         if valid(c) then
             local ok, owner = pcall(function() return c:GetOwner() end)
@@ -401,11 +404,13 @@ local function scanGameMarkers(now)
                     local l = c:K2_GetComponentLocation()
                     local path = tex:GetFullName():gsub("^%S+%s+", "")
                     Icons.addPath(name, path)
-                    addPoi(worldName(c), "landmark", name, l.X, l.Y, l.Z, now, name, nil, "MapIcon")
+                    Icons.request(name)
+                    list[#list + 1] = { c = "landmark", n = name, x = l.X, y = l.Y, z = l.Z, i = name }
                 end
             end
         end
     end
+    Markers = list
 end
 
 local LocalPC = nil
@@ -534,7 +539,7 @@ local function tick()
 
     if Config.GameMapMarkers and me and clock - LastMarkerScan >= 10 then
         LastMarkerScan = clock
-        local ok, err = pcall(scanGameMarkers, now)
+        local ok, err = pcall(scanGameMarkers)
         if not ok then log("地图标记扫描出错: %s", tostring(err)) end
     end
 
@@ -578,6 +583,7 @@ local function tick()
         cycleSeconds = math.ceil(#ScanQueue * Config.LiveIntervalMs / 1000),
         players = out,
         creatures = Creatures,
+        markers = Markers,
         trail = trail,
     }))
 

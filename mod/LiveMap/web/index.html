@@ -253,21 +253,21 @@
       if (q && !p.n.toLowerCase().includes(q)) continue;
       list.push(p);
     }
-    if (live && !hidden.has('npc') || live && !hidden.has('creature')) {
-      for (const c of (live.creatures || [])) {
-        if (hidden.has(c.c)) continue;
-        if (q && !c.n.toLowerCase().includes(q)) continue;
-        list.push({ ...c, dyn: true });
-      }
+    // 实时数据: 附近的生物/NPC, 游戏地图标记 (任务目标等, 会移动所以不存档)
+    for (const c of liveExtras()) {
+      if (hidden.has(c.c)) continue;
+      if (q && !c.n.toLowerCase().includes(q)) continue;
+      list.push({ ...c, dyn: true });
     }
     return list;
   }
+  const liveExtras = () => live ? [...(live.creatures || []), ...(live.markers || [])] : [];
 
   // ---------- 侧栏 ----------
   function renderCats() {
     const counts = {};
     for (const p of worldPois()) counts[p.c] = (counts[p.c] || 0) + 1;
-    for (const c of (live && live.creatures) || []) counts[c.c] = (counts[c.c] || 0) + 1;
+    for (const c of liveExtras()) counts[c.c] = (counts[c.c] || 0) + 1;
     const box = $('cats');
     box.innerHTML = '';
     for (const c of categories) {

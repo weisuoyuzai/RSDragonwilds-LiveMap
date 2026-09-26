@@ -61,15 +61,23 @@ end
 -- 刷新点/采集物同理: BP_SpawnPoint_Magpie_C -> magpie, BP_Spawner_BittercapMushroom_C -> bittercapmushroom
 local JOURNAL_CATS = { creature = true, npc = true, spawn = true, gather = true }
 
-local function creatureIcon(cls)
+local function creatureIcon(cls, allowPrefix)
     local core = cls:gsub("^BP_AI_", ""):gsub("^BP_NPC_", ""):gsub("^BP_SpawnPoint_", ""):gsub("^BP_Spawner_", "")
-        :gsub("_Character.*$", ""):gsub("_C$", "")
+        :gsub("_Character.*$", ""):gsub("_C$", ""):gsub("_%d+$", "")
     local n = norm(core)
     for _, j in ipairs(journal) do
         if j.norm == n then return j.icon end
     end
     for _, j in ipairs(journal) do   -- 最长的包含匹配, 比如 GoblinArcherElite -> goblinarcher
         if #j.norm >= 4 and n:find(j.norm, 1, true) then return j.icon end
+    end
+    -- 采集物: 以类名开头的最短图鉴条目, 比如 Cabbage -> Cabbage_seeds (作物本身没有单独的图标)
+    if allowPrefix and #n >= 4 then
+        local best
+        for _, j in ipairs(journal) do
+            if j.norm:sub(1, #n) == n and (not best or #j.norm < #best.norm) then best = j end
+        end
+        return best and best.icon
     end
 end
 
@@ -101,7 +109,7 @@ function M.resolve(actor, cls, cat, extra)
             -- 优先用图鉴条目里记录的怪物数据类 (BP_AI_<core>_Data) 精确对应, 再退回按名字模糊匹配
             local core = opts.creatureCore and opts.creatureCore(cls)
             local n = core and opts.names and opts.names.creatures[core]
-            cached = (n and n[3] ~= "" and opts.paths[n[3]] and n[3]) or creatureIcon(cls) or false
+            cached = (n and n[3] ~= "" and opts.paths[n[3]] and n[3]) or creatureIcon(cls, cat == "gather") or false
         end
         if not cached then cached = opts.catDefaults[cat] or false end
         classCache[key] = cached

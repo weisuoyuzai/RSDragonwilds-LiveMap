@@ -49,7 +49,19 @@ local function marker(tex, x, y)
 end
 local markers = { marker("T_Map_Icon_FriendArrow_1", 7000, 190000), marker("T_NavIcons_QuestMarker", 8000, 191000) }
 
+-- 游戏运行时生成的采集物 (全地图数据里没有, 类名也没写在规则里)
+local function actor(cls, x, y)
+    return obj({
+        K2_GetActorLocation = function() return { X = x, Y = y, Z = -3600 } end,
+        GetWorld = function() return world end, GetClass = function() return cls_(cls) end,
+    })
+end
+function cls_(n) return cls(n) end
+local gatherables = { actor("BP_Spawner_Cabbage_C", 9000, 191000), actor("BP_Spawner_Potato_C", 9100, 191000),
+    actor("BP_Spawner_AshBranch_02_C", 9200, 191000) }
+
 FindAllOf = function(name)
+    if name == "GatherableResource" then return gatherables end
     if name == "MapIconComponent" then return markers end
     if name == "PlayerController" then return { pc } end
     if name == "Character" then return { pawn } end
@@ -75,5 +87,6 @@ os.clock = function() fake = fake + 0.3 return fake end
 
 dofile(MOD .. "Scripts" .. package.config:sub(1, 1) .. "main.lua")
 assert(loopFn, "main.lua did not start its game-thread loop")
-for _ = 1, 20 do loopFn() end
+-- 扫描队列每次心跳只扫一个类, 跑够一整轮
+for _ = 1, 150 do loopFn() end
 return table.concat(logs)

@@ -34,8 +34,10 @@
   .cat .sw i { width: 10px; height: 10px; border-radius: 50%; display: block; box-shadow: 0 0 0 2px #0006; }
   .cat .name { flex: 1; }
   .cat .n { color: var(--muted); font-variant-numeric: tabular-nums; }
-  .cat .tw { width: 14px; flex: none; color: var(--muted); text-align: center; cursor: pointer; border-radius: 4px; }
-  .cat .tw:hover { background: var(--line); color: var(--text); }
+  .cat .tw { width: 20px; height: 20px; flex: none; display: grid; place-items: center; color: var(--accent);
+    font-size: 13px; cursor: pointer; border-radius: 5px; border: 1px solid transparent; }
+  .cat .tw:not(:empty) { border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+  .cat .tw:hover { background: color-mix(in srgb, var(--accent) 25%, transparent); color: var(--text); }
   .cat.sub { padding-left: 28px; font-size: 12px; gap: 6px; }
   .cat.sub .sw { width: 18px; height: 18px; }
   .cat.sub .sw img { width: 18px; height: 18px; }

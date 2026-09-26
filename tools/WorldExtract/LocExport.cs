@@ -160,6 +160,13 @@ public static class LocExport
         var termMap = new SortedDictionary<string, string>(StringComparer.Ordinal);
         foreach (var term in terms)
             if (byEnglish.TryGetValue(term, out var k) && zh.TryGetValue(k, out var z)) termMap[term] = z.Trim();
+        // 再附上语言包里所有短词条 (最多 4 个词), 用于翻译按类名推出来的名字 (例如 Cabbage -> 卷心菜)
+        foreach (var (english, key) in byEnglish)
+        {
+            if (english.Length == 0 || english.Length > 40 || english.Split(' ').Length > 4 || termMap.ContainsKey(english)) continue;
+            if (english.IndexOfAny(['{', '<', '\n', ':', '!', '?', '.']) >= 0) continue;
+            if (zh.TryGetValue(key, out var z2) && z2.Trim() != english) termMap[english] = z2.Trim();
+        }
 
         var sb = new StringBuilder("-- 由 WorldExtract loc 从游戏资源和语言包生成的官方中英文名称, 游戏更新后重新生成\nreturn {\n  icons = {\n");
         foreach (var (k, v) in icons) sb.Append("    [").Append(Lua(k)).Append("] = { ").Append(Lua(v.en)).Append(", ").Append(Lua(v.zh)).Append(" },\n");

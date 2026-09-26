@@ -99,6 +99,14 @@ def test_runtime(mod):
     dyn = load('pois.json')['worlds'].get('L_World', [])
     names = [p['n'] for p in dyn]
     check('BP_BaseBuilding_Bed_C' in names, 'player-built bed recorded by live scan')
+    # 游戏运行时生成的采集物: 按类名自动得到官方名称和图标, 不落到 "其他"
+    live_gather = {p['n']: p for p in dyn if p['c'] == 'gather'}
+    cab, pot = live_gather.get('BP_Spawner_Cabbage_C', {}), live_gather.get('BP_Spawner_Potato_C', {})
+    check(cab.get('s') == 'Cabbage' and zh.get('Cabbage') == '卷心菜' and pot.get('s') == 'Potato' and zh.get('Potato') == '土豆',
+          f'runtime gatherables named from the game: {cab.get("s")} / {pot.get("s")}')
+    check('Cabbage' in cab.get('i', ''), f'runtime gatherable gets a matching icon: {cab.get("i")}')
+    check(all(p.get('s') not in (None, 'Other') for p in live_gather.values()),
+          f'no runtime gatherable left unnamed: {[(p["n"], p.get("s")) for p in live_gather.values()]}')
     check('BP_AnimaVent_C' not in names, 'live-scanned vent deduplicated against full-map data')
 
     exported = set(load('icons.json'))

@@ -45,6 +45,24 @@ local function resourceName(icon)
     end
 end
 
+-- 类名推出英文名: BP_Spawner_AshBranch_01_C -> "Ash Branch", BP_Spawner_Cabbage_C -> "Cabbage"
+local function prettyCore(cls)
+    local core = cls:gsub("^BP_Spawner_", ""):gsub("^BP_OreNode_", ""):gsub("^BP_MiningRock_", ""):gsub("^BP_", "")
+        :gsub("_C$", ""):gsub("_%d+$", "")
+    return (core:gsub("(%l)(%u)", "%1 %2"):gsub("_", " "))
+end
+
+-- 语言包里的官方译名 (不区分大小写): "cabbage" -> Cabbage / 卷心菜
+local termsLower
+local function termName(en)
+    if not termsLower then
+        termsLower = {}
+        for k, v in pairs(Names.terms or {}) do termsLower[k:lower()] = { k, v } end
+    end
+    local t = termsLower[en:lower()]
+    if t then return reg(t[1], t[2]) end
+end
+
 local MATERIAL = {   -- 图标没有官方名时的后备
     { "SoulStone", "Soul Stone", "灵魂石" }, { "AviskCrystal", "Avisk Crystal", "阿维斯克水晶" },
     { "Snapdragon", "Snapdragon", "金鱼草" }, { "Luminite", "Luminite Ore", "光晶矿石" },
@@ -161,8 +179,12 @@ function M.subOf(cls, cat, icon)
         local rune = icon and icon:match("^T_Icon_Rune_(%a+)$")
         local r = rune and RUNES[rune]
         v = r and reg(r[1], r[2]) or iconName(icon)
-    elseif cat == "ore" or cat == "stone" or cat == "gather" then
-        v = resourceName(icon) or rules(MATERIAL, cls) or reg("Other", "其他")
+    elseif cat == "gather" then
+        -- 采集物种类很多 (不少是游戏运行时生成的), 先按类名查官方译名, 再用图标的物品名
+        local en = prettyCore(cls)
+        v = termName(en) or resourceName(icon) or rules(MATERIAL, cls) or reg(en, en)
+    elseif cat == "ore" or cat == "stone" then
+        v = resourceName(icon) or rules(MATERIAL, cls) or termName(prettyCore(cls)) or reg("Other", "其他")
     elseif RULES[cat] then
         v = rules(RULES[cat], cls) or reg("Other", "其他")
     elseif cat == "chest" then

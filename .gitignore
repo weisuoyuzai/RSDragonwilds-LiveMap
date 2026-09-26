@@ -1,0 +1,18 @@
+# build output
+dist/
+build/
+bin/
+obj/
+
+# game-specific / personal files
+*.usmap
+
+# python
+__pycache__/
+*.pyc
+.venv/
+
+# editors
+.vs/
+.vscode/
+*.user

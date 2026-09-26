@@ -1,0 +1,79 @@
+﻿LiveMap —— RuneScape: Dragonwilds（符文世界：龙之荒野）实时网页地图（UE4SS 模组）
+=====================================================================================
+
+启动游戏后自动在浏览器打开一张实时地图（http://localhost:8765/），显示：
+  · 你和队友的位置、朝向、移动轨迹
+  · 全地图的传送石、灵元泉（按符文类型显示图标）、符文精华泉、宝箱、传送门/宝库入口、
+    神殿/祭坛、复活墓地、敏捷赛道/兔子地道、金属矿/精华石、钓鱼点、传说物品、NPC 等
+  · 石料、采集物、怪物刷新点、附近的敌人/生物（数量多，默认隐藏，左侧图层里可打开）
+  · 你自己建的床/箱子、死亡墓碑、当前任务目标等（游戏里实时扫描）
+
+全地图物品数据、游戏地图底图和图标都已预先从游戏资源里提取好，装上就能用，
+游戏里只需要实时扫描附近的动态物品。
+
+
+前置：安装 UE4SS
+----------------
+本压缩包不含 UE4SS，需要自己安装。
+  1. 下载 UE4SS 的 experimental 版本（普通版即可，不需要 zDEV 版）：
+     https://github.com/UE4SS-RE/RE-UE4SS/releases/tag/experimental-latest
+     注意：必须是支持虚幻 5.6 的 experimental 版本；旧的 3.0.1 正式版不支持这个游戏。
+     本模组在 v3.0.1-1142 上测试通过。
+  2. 找到游戏目录：Steam 库里右键游戏 → 管理 → 浏览本地文件。
+  3. 把 UE4SS 压缩包的内容（dwmapi.dll 和 ue4ss 文件夹）解压到：
+       游戏目录\RSDragonwilds\Binaries\Win64\
+     也就是和 RSDragonwilds-Win64-Shipping.exe 放在一起。
+     （不要放到 游戏目录\Engine\Binaries\Win64，那里不会被加载。）
+  4. 建议修改 ue4ss\UE4SS-settings.ini：
+       EnableHotReloadSystem = 0      （游戏中按 Ctrl+R 热重载可能导致卡死）
+       GuiConsoleVisible = 0          （不弹出 UE4SS 调试窗口）
+     并在 ue4ss\Mods\mods.txt 里把 KismetDebuggerMod 和 EventViewerMod 改为 0（调试用模组，开销大）。
+
+
+安装 LiveMap
+------------
+把压缩包里的 LiveMap 文件夹复制到：
+  游戏目录\RSDragonwilds\Binaries\Win64\ue4ss\Mods\LiveMap\
+模组自带 enabled.txt，不需要修改 mods.txt。启动游戏，浏览器会自动打开地图页面。
+
+
+使用
+----
+· 鼠标拖动平移，滚轮缩放；“跟随玩家”“显示全部”“旋转/镜像”在左侧面板。
+· 左侧图层可逐类显示/隐藏；“图标大小”滑块调整图标大小；可按类名搜索。
+· 鼠标移到图标上显示名称、坐标、离你多远。
+· 缩小看全图时，数量多的物品会显示成彩色小圆点，放大后变成图标。
+
+快捷键（游戏内）
+  Ctrl+F7  重新打开地图网页
+  Ctrl+F8  导出当前加载的所有物体类名到 LiveMap\web\data\classes.txt（想加新分类时用）
+  Ctrl+F9  清空游戏里扫描记录下来的点和轨迹（全地图数据不受影响）
+
+自定义：分类、颜色、图标规则都在 LiveMap\Scripts\config.lua 里。
+
+
+游戏更新后
+----------
+如果游戏更新后地图物品位置不对或缺东西：
+  1. 进游戏按一次 Ctrl+小键盘6（UE4SS 会在 ue4ss 目录生成一个 .usmap 映射文件）。
+  2. 双击 LiveMap\tools\UpdateWorldData.bat，等约 1 分钟。
+  3. 重启游戏。
+游戏大版本更新后 UE4SS 也可能需要更新到新的 experimental 版本。
+
+
+常见问题
+--------
+· 网页显示“未连接”：确认游戏已启动且进入存档；看 ue4ss\UE4SS.log 里有没有 “[LiveMap] 已加载”。
+  没有 UE4SS.log 说明 UE4SS 没装对位置。
+· 浏览器没自动打开：手动打开 http://localhost:8765/ ，或在游戏里按 Ctrl+F7。
+· 地图服务器只监听本机（localhost），不需要管理员权限，也不对外开放。
+· 游戏在后台时，少数新图标要等你回到游戏窗口才会补全（大部分图标已预置）。
+· 卸载：删除 ue4ss\Mods\LiveMap 文件夹。
+
+
+第三方组件
+----------
+· 需配合 UE4SS 使用（MIT 许可）  https://github.com/UE4SS-RE/RE-UE4SS
+· tools\WorldExtract.exe 使用 CUE4Parse（Apache-2.0 许可，见 tools\CUE4Parse-LICENSE.txt / CUE4Parse-NOTICE.txt）
+  https://github.com/FabianFG/CUE4Parse
+· 地图、图标等美术资源版权归游戏开发商所有，仅供个人游玩辅助使用。

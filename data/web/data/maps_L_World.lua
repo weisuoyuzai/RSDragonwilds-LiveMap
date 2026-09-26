@@ -1,0 +1,28 @@
+return {
+  ["T_Map_Dowdun_Underground"] = {
+    ["minX"] = 202424.192131,
+    ["width"] = 592,
+    ["yaw"] = 0.0,
+    ["priority"] = 1,
+    ["minZ"] = -23575.727308,
+    ["minY"] = 24413.289249,
+    ["image"] = "data/map_L_World_T_Map_Dowdun_Underground.png",
+    ["maxX"] = 235424.192131,
+    ["maxZ"] = -5575.727308,
+    ["maxY"] = 58013.289249,
+    ["height"] = 592,
+  },
+  ["T_WorldMap_Landmass"] = {
+    ["minX"] = -12000.0,
+    ["width"] = 4096,
+    ["yaw"] = 0.0,
+    ["priority"] = 0,
+    ["minZ"] = -90000.0,
+    ["maxY"] = 301450.0,
+    ["maxZ"] = 90000.0,
+    ["maxX"] = 408000.0,
+    ["minY"] = -118550.0,
+    ["image"] = "data/map_L_World_T_WorldMap_Landmass.png",
+    ["height"] = 4096,
+  },
+}

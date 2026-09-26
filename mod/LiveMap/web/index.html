@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>龙之荒野 实时地图</title>
+<style>
+  :root {
+    --bg: #11151a; --panel: #1a2027; --panel-2: #222a33; --line: #2e3844;
+    --text: #e3e8ee; --muted: #8c99a8; --accent: #4fc3f7; --ok: #81c784; --bad: #e57373;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 13px/1.45 "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif; overflow: hidden; }
+  #map { position: fixed; inset: 0; width: 100%; height: 100%; cursor: grab; display: block; }
+  #map.dragging { cursor: grabbing; }
+  #map.align { cursor: move; }
+  #panel { position: fixed; top: 12px; left: 12px; width: 260px; max-height: calc(100% - 24px); overflow: auto;
+    background: color-mix(in srgb, var(--panel) 94%, transparent); border: 1px solid var(--line);
+    border-radius: 10px; padding: 12px; backdrop-filter: blur(6px); }
+  #panel.collapsed > :not(header) { display: none; }
+  header { display: flex; align-items: center; gap: 8px; }
+  header h1 { font-size: 14px; margin: 0; flex: 1; font-weight: 600; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bad); flex: none; }
+  .dot.on { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+  h2 { font-size: 11px; font-weight: 600; letter-spacing: .06em; color: var(--muted); margin: 14px 0 6px; text-transform: uppercase; }
+  .status { color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 6px; }
+  .status b { color: var(--text); font-weight: 500; }
+  .cat { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 6px; cursor: pointer; user-select: none; }
+  .cat:hover { background: var(--panel-2); }
+  .cat.off { opacity: .4; }
+  .cat .sw { width: 22px; height: 22px; flex: none; display: grid; place-items: center; }
+  .cat .sw img { width: 22px; height: 22px; object-fit: contain; }
+  .cat .sw i { width: 10px; height: 10px; border-radius: 50%; display: block; box-shadow: 0 0 0 2px #0006; }
+  .cat .name { flex: 1; }
+  .cat .n { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 4px 0; }
+  label.chk { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  button, input[type=text], select { font: inherit; color: var(--text); background: var(--panel-2);
+    border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+  button { cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.active { background: var(--accent); color: #0b1016; border-color: var(--accent); }
+  input[type=text] { width: 100%; }
+  input[type=range] { flex: 1; }
+  #tip { position: fixed; pointer-events: none; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 10px; display: none; max-width: 360px; box-shadow: 0 6px 20px #0008; }
+  #tip .t { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  #tip .t img { width: 32px; height: 32px; object-fit: contain; }
+  #tip .s { color: var(--muted); font-size: 12px; word-break: break-all; }
+  .hint { color: var(--muted); font-size: 12px; }
+  #toggle { background: none; border: none; color: var(--muted); padding: 0 4px; font-size: 16px; }
+  @media (max-width: 600px) { #panel { width: calc(100% - 24px); max-height: 50%; } }
+</style>
+</head>
+<body>
+<canvas id="map"></canvas>
+<div id="panel">
+  <header><span class="dot" id="conn"></span><h1>龙之荒野 实时地图</h1><button id="toggle" title="收起/展开">☰</button></header>
+  <div class="status" id="status">等待游戏数据…</div>
+
+  <h2>图层</h2>
+  <div id="cats"></div>
+  <div class="row"><button id="allOn">全部显示</button><button id="allOff">全部隐藏</button></div>
+
+  <h2>筛选</h2>
+  <input type="text" id="search" placeholder="按类名搜索, 例如 Tier5 / Iron">
+  <div class="row"><label class="chk"><input type="checkbox" id="showTrail" checked> 显示移动轨迹</label></div>
+  <div class="row"><label class="chk"><input type="checkbox" id="showLabels"> 显示名称</label></div>
+  <div class="row"><span class="hint">图标大小</span><input type="range" id="iconScale" min="0.6" max="2" step="0.1" value="1"></div>
+
+  <h2>视图</h2>
+  <div class="row">
+    <button id="follow" class="active">跟随玩家</button>
+    <button id="fit">显示全部</button>
+  </div>
+  <div class="row">
+    <button id="rotate">旋转 90°</button>
+    <button id="flip">镜像</button>
+  </div>
+
+  <h2>底图</h2>
+  <div class="row"><label class="chk"><input type="checkbox" id="showMap" checked> 显示游戏地图</label></div>
+  <div class="row"><span class="hint">透明度</span><input type="range" id="imgAlpha" min="0" max="1" step="0.05" value="1"></div>
+  <p class="hint">游戏地图由模组在你第一次打开游戏内大地图时自动导出, 并按坐标精确对齐; 进入地下城范围会自动切换地下城地图。</p>
+  <h2>自定义底图</h2>
+  <div class="row"><button id="pickImg">选择地图图片…</button><input type="file" id="imgFile" accept="image/*" hidden></div>
+  <div class="row"><button id="align">对齐底图</button><button id="clearImg">移除</button></div>
+  <p class="hint">可选: 叠加你自己的图片。点“对齐底图”后拖动/滚轮缩放图片, 让标记与地图重合。</p>
+</div>
+<div id="tip"></div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const canvas = $('map'), ctx = canvas.getContext('2d');
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('livemap.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem('livemap.' + k, JSON.stringify(v)); } catch {} },
+  };
+
+  let categories = [], catById = {};
+  let live = null, pois = {}, poiVersion = -1, lastOk = 0;
+  let staticPois = [], staticKey = null, merged = null;   // 全地图数据 (模组从游戏资源提取)
+  const hidden = new Set(store.get('hidden', []));
+  const view = { scale: store.get('scale', 0.02), cx: 0, cy: 0, rot: store.get('rot2', 0), flip: store.get('flip2', false) };
+  let follow = !new URLSearchParams(location.search).has('fit'), needsFit = true, alignMode = false;
+  let bgImg = null, bg = { x: 0, y: 0, s: 100 };
+  let dirty = true;
+  let layers = [], layersWorld = null, layersTried = 0;
+  let iconVersion = -1;
+  const iconImgs = {};          // 已导出的游戏图标: 名字 -> Image
+
+  // 游戏地图自带标记的中文名 (按贴图名)
+  const MARKER_NAMES = [
+    [/DungeonEntrance/, '地牢入口'], [/HealthAltar_Map_Used/, '生命神殿 (已使用)'], [/HealthAltar/, '生命神殿'],
+    [/Agility/, '敏捷赛道'], [/Kebbit_Tunnel_Blocked/, '兔子地道 (堵住)'], [/Kebbit_Tunnel/, '兔子地道'],
+    [/NMC/, '梦魇熔炉'], [/FightCaves/, '战斗洞窟'], [/QuestMarker/, '任务目标'], [/Eldergate/, '长者之门'],
+    [/MapTower/, '地图塔'], [/BossAlter/, '首领祭坛'], [/Lodestone/, '传送石'], [/Gravestone/, '墓碑'], [/Bed/, '床'],
+  ];
+  const markerName = n => (MARKER_NAMES.find(([re]) => re.test(n)) || [0, null])[1];
+  // 游戏里本来就是地图标记的贴图直接画; 物品图标画成徽章
+  const isMapIcon = n => /^T_(NavIcons|Map_|LodestoneMapIcon|HealthAltar|Agility)/.test(n);
+  const SEA = '#2d4a52';
+
+  // ---------- 坐标变换 ----------
+  // 世界 -> 地图平面 (u 右, v 下). 与游戏地图一致: 向右 = +X, 向下 = +Y (北在上). 再按旋转/镜像调整
+  function toMap(x, y) {
+    let u = x, v = y;
+    if (view.flip) u = -u;
+    for (let i = 0; i < view.rot; i++) [u, v] = [-v, u];
+    return [u, v];
+  }
+  const W = () => canvas.clientWidth, H = () => canvas.clientHeight;
+  function mapToScreen(u, v) { return [(u - view.cx) * view.scale + W() / 2, (v - view.cy) * view.scale + H() / 2]; }
+  function screenToMap(sx, sy) { return [(sx - W() / 2) / view.scale + view.cx, (sy - H() / 2) / view.scale + view.cy]; }
+  function worldToScreen(x, y) { const [u, v] = toMap(x, y); return mapToScreen(u, v); }
+
+  // ---------- 数据 ----------
+  async function getJson(url) {
+    const r = await fetch(url + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  }
+  async function loadCategories() {
+    try {
+      categories = await getJson('data/categories.json');
+      const seen = new Set(store.get('seenCats', []));
+      for (const c of categories) {
+        if (!seen.has(c.id) && c.hidden) hidden.add(c.id);
+        seen.add(c.id);
+      }
+      store.set('seenCats', [...seen]); store.set('hidden', [...hidden]);
+      catById = Object.fromEntries(categories.map(c => [c.id, c]));
+      renderCats();
+    } catch { setTimeout(loadCategories, 2000); }
+  }
+  async function poll() {
+    try {
+      live = await getJson('data/live.json');
+      lastOk = Date.now();
+      if (live.poiVersion !== poiVersion) {
+        try { const p = await getJson('data/pois.json'); pois = Array.isArray(p.worlds) ? {} : p.worlds; poiVersion = p.version; merged = null; renderCats(); } catch {}
+      }
+      if (!categories.length) loadCategories();
+      if (live.iconVersion !== iconVersion) loadIcons(live.iconVersion);
+      const sk = live.world + '#' + live.staticVersion;
+      if (live.staticVersion && sk !== staticKey) {
+        staticKey = sk;
+        try { staticPois = (await getJson('data/static_' + encodeURIComponent(live.world) + '.json')).pois || []; }
+        catch { staticPois = []; staticKey = null; }
+        merged = null; renderCats();
+      }
+      if (live.world !== layersWorld || (!layers.length && Date.now() - layersTried > 10000)) loadLayers(live.world);
+      dirty = true;
+    } catch {}
+    setTimeout(poll, 250);
+  }
+
+  async function loadIcons(ver) {
+    iconVersion = ver;
+    try {
+      for (const name of await getJson('data/icons.json')) {
+        if (iconImgs[name]) continue;
+        const img = new Image();
+        img.onload = () => { dirty = true; renderCats(); };
+        img.src = 'data/icons/' + name + '.png?v=' + ver;
+        iconImgs[name] = img;
+      }
+    } catch { iconVersion = -1; }
+  }
+  const ready = n => { const im = n && iconImgs[n]; return im && im.complete && im.naturalWidth ? im : null; };
+  const iconOf = p => {
+    const cat = catById[p.c];
+    const n = ready(p.i) ? p.i : (cat && ready(cat.icon) ? cat.icon : null);
+    return n ? { name: n, img: iconImgs[n] } : null;
+  };
+
+  async function loadLayers(world) {
+    layersWorld = world; layersTried = Date.now(); merged = null;
+    try {
+      const list = await getJson('data/maps_' + encodeURIComponent(world) + '.json');
+      layers = list.sort((a, b) => a.priority - b.priority).map(l => {
+        const img = new Image();
+        img.onload = () => { dirty = true; };
+        img.src = l.image + '?v=' + Date.now();
+        return { ...l, img };
+      });
+    } catch { layers = []; }
+    dirty = true;
+  }
+  const inLayer = (l, p) => p && p.x >= l.minX && p.x <= l.maxX && p.y >= l.minY && p.y <= l.maxY && p.z >= l.minZ && p.z <= l.maxZ;
+  // 图片像素 -> 屏幕 的仿射变换, 旋转/镜像都自动跟随
+  function withLayerTransform(l, fn) {
+    const w = l.img.naturalWidth || l.width, h = l.img.naturalHeight || l.height;
+    const [x0, y0] = worldToScreen(l.minX, l.minY), [x1, y1] = worldToScreen(l.maxX, l.minY), [x2, y2] = worldToScreen(l.minX, l.maxY);
+    ctx.save();
+    ctx.transform((x1 - x0) / w, (y1 - y0) / w, (x2 - x0) / h, (y2 - y0) / h, x0, y0);
+    fn(w, h);
+    ctx.restore();
+  }
+  function drawLayers() {
+    if (!$('showMap').checked || !layers.length) return;
+    const me = live && ((live.players || []).find(p => p.me));
+    const alpha = +$('imgAlpha').value;
+    for (const l of layers) {
+      const overlay = l.priority > 0;
+      if (overlay && !inLayer(l, me)) continue;   // 地下城等只在玩家进入范围时显示
+      withLayerTransform(l, (w, h) => {
+        ctx.globalAlpha = overlay ? 1 : alpha;
+        ctx.fillStyle = overlay ? '#1b1f24' : SEA;
+        ctx.fillRect(0, 0, w, h);
+        if (l.img.complete && l.img.naturalWidth) ctx.drawImage(l.img, 0, 0);
+      });
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // 全地图数据 + 游戏里扫描到的 (玩家建筑/死亡墓碑/游戏地图标记等)
+  function worldPois() {
+    if (!live) return [];
+    if (!merged) {
+      const dyn = pois[live.world] || [];
+      merged = staticPois.map(p => ({ ...p, st: true })).concat(dyn);
+    }
+    return merged;
+  }
+  function visiblePois() {
+    const q = $('search').value.trim().toLowerCase();
+    const list = [];
+    for (const p of worldPois()) {
+      if (hidden.has(p.c)) continue;
+      if (q && !p.n.toLowerCase().includes(q)) continue;
+      list.push(p);
+    }
+    if (live && !hidden.has('npc') || live && !hidden.has('creature')) {
+      for (const c of (live.creatures || [])) {
+        if (hidden.has(c.c)) continue;
+        if (q && !c.n.toLowerCase().includes(q)) continue;
+        list.push({ ...c, dyn: true });
+      }
+    }
+    return list;
+  }
+
+  // ---------- 侧栏 ----------
+  function renderCats() {
+    const counts = {};
+    for (const p of worldPois()) counts[p.c] = (counts[p.c] || 0) + 1;
+    for (const c of (live && live.creatures) || []) counts[c.c] = (counts[c.c] || 0) + 1;
+    const box = $('cats');
+    box.innerHTML = '';
+    for (const c of categories) {
+      const el = document.createElement('div');
+      el.className = 'cat' + (hidden.has(c.id) ? ' off' : '');
+      const im = ready(c.icon);
+      el.innerHTML = `<span class="sw">${im ? `<img src="${im.src}" alt="">` : `<i style="background:${c.color}"></i>`}</span>` +
+        `<span class="name"></span><span class="n">${counts[c.id] || 0}</span>`;
+      el.querySelector('.name').textContent = c.label;
+      el.onclick = () => { hidden.has(c.id) ? hidden.delete(c.id) : hidden.add(c.id); store.set('hidden', [...hidden]); renderCats(); dirty = true; };
+      box.appendChild(el);
+    }
+  }
+  let lastCatRender = 0;
+
+  function renderStatus() {
+    const on = Date.now() - lastOk < 3000;
+    $('conn').classList.toggle('on', on);
+    if (!live) return;
+    const me = (live.players || []).find(p => p.me) || (live.players || [])[0];
+    const n = worldPois().length;
+    $('status').innerHTML = on
+      ? `世界 <b>${esc(live.world)}</b><br>` +
+        (me ? `坐标 <b>${(me.x / 100).toFixed(0)}, ${(me.y / 100).toFixed(0)}, ${(me.z / 100).toFixed(0)}</b> m<br>` : '未找到玩家<br>') +
+        `玩家 <b>${(live.players || []).length}</b> · 记录点 <b>${n}</b>`
+      : '<span style="color:var(--bad)">未连接 — 游戏没在运行或模组未加载</span>';
+  }
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // ---------- 绘制 ----------
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = innerWidth * dpr; canvas.height = innerHeight * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    dirty = true;
+  }
+
+  function drawGrid() {
+    // 选一个让格子约 80~200px 的步长 (单位 cm)
+    const steps = [1e3, 2e3, 5e3, 1e4, 2e4, 5e4, 1e5, 2e5, 5e5, 1e6];
+    const step = steps.find(s => s * view.scale >= 80) || steps[steps.length - 1];
+    const [u0, v0] = screenToMap(0, 0), [u1, v1] = screenToMap(W(), H());
+    ctx.strokeStyle = '#ffffff0d'; ctx.lineWidth = 1; ctx.beginPath();
+    for (let u = Math.floor(u0 / step) * step; u <= u1; u += step) { const [x] = mapToScreen(u, 0); ctx.moveTo(x, 0); ctx.lineTo(x, H()); }
+    for (let v = Math.floor(v0 / step) * step; v <= v1; v += step) { const [, y] = mapToScreen(0, v); ctx.moveTo(0, y); ctx.lineTo(W(), y); }
+    ctx.stroke();
+    ctx.fillStyle = '#8c99a8'; ctx.font = '11px sans-serif';
+    ctx.fillText(`格子 ${step / 100} m`, W() - 90, H() - 12);
+  }
+
+  function drawCompass() {
+    const [nu, nv] = toMap(0, -1);
+    const x = W() - 40, y = 40;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(Math.atan2(nv, nu) + Math.PI / 2);
+    ctx.fillStyle = '#e57373'; ctx.beginPath(); ctx.moveTo(0, -18); ctx.lineTo(6, 0); ctx.lineTo(-6, 0); ctx.fill();
+    ctx.fillStyle = '#8c99a8'; ctx.beginPath(); ctx.moveTo(0, 18); ctx.lineTo(6, 0); ctx.lineTo(-6, 0); ctx.fill();
+    ctx.fillStyle = '#e3e8ee'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+    ctx.rotate(-(Math.atan2(nv, nu) + Math.PI / 2)); ctx.fillText('N', 0, 32);
+    ctx.restore(); ctx.textAlign = 'start';
+  }
+
+  let drawn = [];
+  function draw() {
+    ctx.fillStyle = getComputedStyle(document.body).backgroundColor;
+    ctx.fillRect(0, 0, W(), H());
+
+    drawLayers();
+    if (bgImg) {
+      const [sx, sy] = mapToScreen(bg.x, bg.y);
+      ctx.globalAlpha = +$('imgAlpha').value;
+      ctx.drawImage(bgImg, sx, sy, bgImg.width * bg.s * view.scale, bgImg.height * bg.s * view.scale);
+      ctx.globalAlpha = 1;
+    }
+    drawGrid();
+    if (!live) return;
+
+    if ($('showTrail').checked && live.trail && live.trail.length > 1) {
+      ctx.strokeStyle = '#4fc3f780'; ctx.lineWidth = 2; ctx.beginPath();
+      live.trail.forEach(([x, y], i) => { const [sx, sy] = worldToScreen(x, y); i ? ctx.lineTo(sx, sy) : ctx.moveTo(sx, sy); });
+      const me = (live.players || []).find(p => p.me);
+      if (me) { const [sx, sy] = worldToScreen(me.x, me.y); ctx.lineTo(sx, sy); }
+      ctx.stroke();
+    }
+
+    const labels = $('showLabels').checked;
+    const iconK = +$('iconScale').value;
+    // 按缩放分层: 缩得越小, 越多的分类退化成小圆点, 免得几千个图标叠成一片
+    // tier 0 = 整张地图 (1 像素 > 3.3 米), 1 = 中等, 2 = 近景 (1 像素 < 1.25 米)
+    const tier = view.scale < 0.003 ? 0 : view.scale < 0.008 ? 1 : 2;
+    const LEVEL = { creature: 0, ore: 0, stone: 0, gather: 0, spawn: 0,
+                    chest: 1, anima: 1, geyser: 1, fishing: 1, lore: 1, npc: 1 };   // 其余为 2 (重要地点)
+    const SIZE = [24, 30, 36];
+    drawn = [];
+    ctx.textBaseline = 'middle';
+    // 数量多的放底层, 重要的画在上面
+    const list = visiblePois().sort((a, b) => (LEVEL[a.c] ?? 2) - (LEVEL[b.c] ?? 2));
+    for (const p of list) {
+      const [sx, sy] = worldToScreen(p.x, p.y);
+      if (sx < -30 || sy < -30 || sx > W() + 30 || sy > H() + 30) continue;
+      const cat = catById[p.c] || { color: '#ccc' };
+      const level = LEVEL[p.c] ?? 2;
+      const asDot = level + tier < 2;
+      let r;
+      if (asDot) {
+        r = tier === 0 ? 2.5 : 3.5;
+        ctx.fillStyle = cat.color; ctx.strokeStyle = '#000a'; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      } else {
+        const size = SIZE[tier] * iconK * (level === 0 ? 0.8 : 1);
+        r = drawMarker(p, sx, sy, cat, size);
+      }
+      if (labels && !asDot && level > 0) {
+        ctx.font = '12px "Microsoft YaHei UI", sans-serif'; ctx.textAlign = 'start';
+        ctx.strokeStyle = '#000c'; ctx.lineWidth = 3; ctx.fillStyle = '#fff';
+        const t = titleOf(p);
+        ctx.strokeText(t, sx + r + 4, sy); ctx.fillText(t, sx + r + 4, sy);
+      }
+      drawn.push({ p, sx, sy, r });
+    }
+    ctx.globalAlpha = 1; ctx.textAlign = 'start';
+
+    for (const pl of live.players || []) {
+      const [sx, sy] = worldToScreen(pl.x, pl.y);
+      const r = pl.yaw * Math.PI / 180;
+      const [du, dv] = toMap(Math.cos(r), Math.sin(r));
+      const ang = Math.atan2(dv, du);
+      const im = ready(pl.me ? 'T_NavIcons_Player_Self' : 'T_Map_Icon_FriendArrow_1');
+      ctx.save(); ctx.translate(sx, sy);
+      if (im) {
+        ctx.rotate(ang + Math.PI / 2);            // 贴图朝上
+        ctx.shadowColor = '#000c'; ctx.shadowBlur = 6;
+        const ps = 44 * iconK;
+        ctx.drawImage(im, -ps / 2, -ps / 2, ps, ps);
+      } else {
+        ctx.rotate(ang);
+        ctx.fillStyle = pl.me ? '#4fc3f7' : '#ffffff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(14, 0); ctx.lineTo(-8, 8); ctx.lineTo(-4, 0); ctx.lineTo(-8, -8); ctx.closePath();
+        ctx.stroke(); ctx.fill();
+      }
+      ctx.restore();
+      if (pl.name) {
+        ctx.font = 'bold 12px "Microsoft YaHei UI", sans-serif'; ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
+        ctx.strokeText(pl.name, sx + 22 * iconK, sy - 16 * iconK); ctx.fillText(pl.name, sx + 22 * iconK, sy - 16 * iconK);
+      }
+      drawn.push({ p: { player: true, ...pl }, sx, sy, r: 20 * iconK });
+    }
+    drawCompass();
+  }
+
+  const prettyName = n => n.replace(/^BP_/, '').replace(/_C$/, '').replace(/_/g, ' ');
+  // 点的显示名: 游戏地图标记用中文名, 有附加说明(如符文类型)的带上说明
+  function titleOf(p) {
+    const cat = catById[p.c];
+    if (p.c === 'landmark') return markerName(p.n) || prettyName(p.n);
+    if (p.l) return (cat ? cat.label + ' · ' : '') + p.l;
+    return prettyName(p.n);
+  }
+
+  // 画一个标记, 返回半径 (用于悬停判定和文字偏移)
+  function drawMarker(p, sx, sy, cat, size) {
+    const icon = iconOf(p);
+    ctx.save();
+    if (icon && isMapIcon(icon.name)) {
+      const s = size * 1.25;
+      ctx.shadowColor = '#000d'; ctx.shadowBlur = 5;
+      ctx.drawImage(icon.img, sx - s / 2, sy - s / 2, s, s);
+      ctx.restore();
+      return s / 2;
+    }
+    const r = size / 2 + 2;
+    ctx.beginPath(); ctx.arc(sx, sy, r + 1.5, 0, Math.PI * 2); ctx.fillStyle = '#000a'; ctx.fill();
+    ctx.fillStyle = '#10151bee'; ctx.strokeStyle = cat.color; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    if (icon) {
+      const s = size * 0.92;
+      ctx.beginPath(); ctx.arc(sx, sy, r - 1, 0, Math.PI * 2); ctx.clip();
+      ctx.drawImage(icon.img, sx - s / 2, sy - s / 2, s, s);
+    } else {
+      ctx.fillStyle = cat.color; ctx.beginPath(); ctx.arc(sx, sy, r * 0.45, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+    return r;
+  }
+
+  function frame() {
+    if (live && follow) {
+      const me = (live.players || []).find(p => p.me) || (live.players || [])[0];
+      if (me) { const [u, v] = toMap(me.x, me.y); if (u !== view.cx || v !== view.cy) { view.cx = u; view.cy = v; dirty = true; } }
+    }
+    // 等主地图底图加载好再缩放 (没有底图时退回到按点的范围)
+    if (needsFit && live && (layers.some(l => l.priority === 0) || (layersTried && Date.now() - layersTried > 3000 && worldPois().length))) {
+      needsFit = false; if (!follow) fitAll();
+    }
+    if (dirty) { dirty = false; draw(); renderStatus(); }
+    if (Date.now() - lastCatRender > 2000) { lastCatRender = Date.now(); renderCats(); renderStatus(); }
+    requestAnimationFrame(frame);
+  }
+
+  function fitAll() {
+    // 有游戏地图时按地图范围 (全地图数据里有些地牢区域远在主地图外面)
+    const base = layers.find(l => l.priority === 0);
+    const list = base ? [{ x: base.minX, y: base.minY }, { x: base.maxX, y: base.maxY }]
+      : [...worldPois(), ...((live && live.players) || [])];
+    if (!list.length) return;
+    let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity;
+    for (const p of list) { const [u, v] = toMap(p.x, p.y); a = Math.min(a, u); b = Math.min(b, v); c = Math.max(c, u); d = Math.max(d, v); }
+    view.cx = (a + c) / 2; view.cy = (b + d) / 2;
+    view.scale = Math.min(W() / Math.max(c - a, 5000), H() / Math.max(d - b, 5000)) * 0.85;
+    dirty = true;
+  }
+
+  // ---------- 交互 ----------
+  let drag = null;
+  canvas.addEventListener('pointerdown', e => {
+    drag = { x: e.clientX, y: e.clientY, cx: view.cx, cy: view.cy, bx: bg.x, by: bg.y };
+    canvas.setPointerCapture(e.pointerId); canvas.classList.add('dragging');
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (drag) {
+      const dx = (e.clientX - drag.x) / view.scale, dy = (e.clientY - drag.y) / view.scale;
+      if (alignMode) { bg.x = drag.bx + dx; bg.y = drag.by + dy; saveBg(); }
+      else { view.cx = drag.cx - dx; view.cy = drag.cy - dy; if (Math.abs(dx) + Math.abs(dy) > 2 / view.scale) setFollow(false); }
+      dirty = true;
+    }
+    hover(e.clientX, e.clientY);
+  });
+  canvas.addEventListener('pointerup', () => { drag = null; canvas.classList.remove('dragging'); });
+  canvas.addEventListener('pointerleave', () => { $('tip').style.display = 'none'; });
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const k = Math.exp(-e.deltaY * 0.0015);
+    const [mu, mv] = screenToMap(e.clientX, e.clientY);
+    if (alignMode && bgImg) {
+      bg.x = mu + (bg.x - mu) * k; bg.y = mv + (bg.y - mv) * k; bg.s *= k; saveBg();
+    } else {
+      view.scale = Math.min(Math.max(view.scale * k, 0.0005), 2);
+      if (!follow) { view.cx = mu + (view.cx - mu) / k; view.cy = mv + (view.cy - mv) / k; }
+      store.set('scale', view.scale);
+    }
+    dirty = true;
+  }, { passive: false });
+
+  function hover(x, y) {
+    let best = null, bd = Infinity;
+    for (const d of drawn) {
+      const dd = (d.sx - x) ** 2 + (d.sy - y) ** 2;
+      if (dd <= Math.max(d.r + 2, 8) ** 2 && dd < bd) { bd = dd; best = d; }
+    }
+    const tip = $('tip');
+    if (!best) { tip.style.display = 'none'; return; }
+    const p = best.p, cat = catById[p.c];
+    const me = live && (live.players || []).find(q => q.me);
+    const dist = me ? Math.hypot(p.x - me.x, p.y - me.y, p.z - me.z) / 100 : null;
+    tip.innerHTML = p.player
+      ? `<div class="t">${esc(p.name || '玩家')}${p.me ? '（你）' : ''}</div>`
+      : `<div class="t" style="color:${cat ? cat.color : '#fff'}">${(() => { const ic = iconOf(p); return ic ? `<img src="${ic.img.src}" alt="">` : ''; })()}` +
+        `<span>${esc(p.c === 'landmark' ? titleOf(p) : (cat ? cat.label : p.c) + ' · ' + (p.l || prettyName(p.n)))}</span></div>` +
+        `<div class="s">${esc(p.n)}</div>` +
+        `<div class="s">坐标 ${(p.x / 100).toFixed(0)}, ${(p.y / 100).toFixed(0)}, ${(p.z / 100).toFixed(0)} m` +
+        (dist != null ? ` · 距离 ${dist.toFixed(0)} m` : '') + (p.dyn ? '' : p.st ? '' : ' · 游戏里扫描到') + `</div>`;
+    tip.style.display = 'block';
+    tip.style.left = Math.min(x + 14, innerWidth - tip.offsetWidth - 8) + 'px';
+    tip.style.top = Math.min(y + 14, innerHeight - tip.offsetHeight - 8) + 'px';
+  }
+
+  function setFollow(on) { follow = on; $('follow').classList.toggle('active', on); dirty = true; }
+  $('follow').onclick = () => setFollow(!follow);
+  $('fit').onclick = () => { setFollow(false); fitAll(); };
+  $('rotate').onclick = () => { view.rot = (view.rot + 1) % 4; store.set('rot2', view.rot); if (!follow) fitAll(); dirty = true; };
+  $('flip').onclick = () => { view.flip = !view.flip; store.set('flip2', view.flip); if (!follow) fitAll(); dirty = true; };
+  $('allOn').onclick = () => { hidden.clear(); store.set('hidden', []); renderCats(); dirty = true; };
+  $('allOff').onclick = () => { categories.forEach(c => hidden.add(c.id)); store.set('hidden', [...hidden]); renderCats(); dirty = true; };
+  $('toggle').onclick = () => $('panel').classList.toggle('collapsed');
+  for (const id of ['search', 'showTrail', 'showLabels', 'imgAlpha', 'showMap']) $(id).addEventListener('input', () => dirty = true);
+  $('iconScale').value = store.get('iconScale', 1);
+  $('iconScale').addEventListener('input', () => { store.set('iconScale', +$('iconScale').value); dirty = true; });
+
+  // ---------- 底图 ----------
+  const bgKey = () => 'bg.' + ((live && live.world) || 'World');
+  function saveBg() { store.set(bgKey(), bg); }
+  function useImage(src) {
+    const img = new Image();
+    img.onload = () => {
+      bgImg = img;
+      const saved = store.get(bgKey(), null);
+      if (saved) bg = saved;
+      else { const [u, v] = screenToMap(0, 0); bg = { x: u, y: v, s: W() / view.scale / img.width }; }
+      dirty = true;
+    };
+    img.src = src;
+  }
+  $('pickImg').onclick = () => $('imgFile').click();
+  $('imgFile').onchange = e => { const f = e.target.files[0]; if (f) useImage(URL.createObjectURL(f)); };
+  $('align').onclick = () => {
+    alignMode = !alignMode;
+    $('align').classList.toggle('active', alignMode); canvas.classList.toggle('align', alignMode);
+    if (alignMode) setFollow(false);
+  };
+  $('clearImg').onclick = () => { bgImg = null; dirty = true; };
+  (async () => {
+    for (const name of ['map.png', 'map.jpg', 'map.webp']) {
+      try { const r = await fetch(name, { method: 'HEAD' }); if (r.ok) { useImage(name); break; } } catch {}
+    }
+  })();
+
+  addEventListener('resize', resize);
+  resize();
+  setFollow(follow);
+  loadCategories();
+  poll();
+  frame();
+})();
+</script>
+</body>
+</html>

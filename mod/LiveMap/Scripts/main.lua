@@ -44,7 +44,8 @@ local Config = dofile(ModDir .. "Scripts\\config.lua")
 -- JSON 编码
 ------------------------------------------------------------------------
 local function jsonStr(s)
-    return '"' .. tostring(s):gsub('[%c"\\]', function(c)
+    -- 只转义 ASCII 控制字符 (0-31). 不能用 %c: 它依赖系统区域设置, 在西文系统上会把 UTF-8 中文的某些字节当成控制字符
+    return '"' .. tostring(s):gsub('[\0-\31"\\]', function(c)
         if c == '"' then return '\\"' end
         if c == "\\" then return "\\\\" end
         if c == "\n" then return "\\n" end

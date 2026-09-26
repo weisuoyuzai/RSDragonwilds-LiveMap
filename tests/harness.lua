@@ -2,6 +2,8 @@
 -- 参数: 组装好的 LiveMap 目录 (以路径分隔符结尾)
 local MOD = ...
 os.execute = function() return true end        -- 不启动地图服务器
+-- 用西文区域设置跑, 暴露依赖区域设置的字符处理 (例如 Lua 的 %c 会把部分 UTF-8 中文字节当成控制字符)
+local _ = os.setlocale("English_United States.1252", "ctype") or os.setlocale("en_US.ISO-8859-1", "ctype")
 
 local function obj(t)
     t.IsValid = function() return true end

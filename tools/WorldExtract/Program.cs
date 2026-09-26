@@ -9,19 +9,42 @@ using CUE4Parse.UE4.Objects.Core.Math;
 using CUE4Parse.UE4.Objects.UObject;
 using CUE4Parse.UE4.Versions;
 
+// 其他模式: ls <过滤> 列出资源文件; dump <资源路径...> 输出 JSON
 // 图标模式: WorldExtract icons <Paks目录> <mappings.usmap> <名单文件 (每行: 名字<TAB>资源路径)> <输出目录> <尺寸>
 var iconMode = args[0] == "icons";
-if (iconMode) args = args[1..];
+var lsMode = args[0] == "ls";
+var dumpMode = args[0] == "dump";
+var locMode = args[0] == "loc";
+if (iconMode || lsMode || dumpMode || locMode) args = args[1..];
 var pakDir = args[0];
 var usmap = args[1];
 var outDir = args[2];
-if (!iconMode) Directory.CreateDirectory(outDir);
+if (!iconMode && !lsMode && !dumpMode && !locMode) Directory.CreateDirectory(outDir);
 
 var provider = new DefaultFileProvider(pakDir, SearchOption.TopDirectoryOnly, new VersionContainer(EGame.GAME_UE5_6), StringComparer.OrdinalIgnoreCase);
 provider.MappingsContainer = new FileUsmapTypeMappingsProvider(usmap);
 provider.Initialize();
 provider.Mount();
 Console.Error.WriteLine($"files: {provider.Files.Count}");
+// 名称模式: WorldExtract loc <Paks目录> <mappings.usmap> <输出 names.lua> [术语文件 (每行一个英文术语)]
+if (locMode)
+{
+    var terms = args.Length > 3 && File.Exists(args[3]) ? File.ReadAllLines(args[3]).Where(l => l.Trim().Length > 0).Select(l => l.Trim()) : [];
+    LocExport.Run(provider, args[2], terms);
+    return;
+}
+if (dumpMode)
+{
+    foreach (var path in args[2..])
+        Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(provider.LoadPackage(path).GetExports(), Newtonsoft.Json.Formatting.Indented));
+    return;
+}
+if (lsMode)
+{
+    foreach (var k in provider.Files.Keys.Where(k => k.Contains(args[2], StringComparison.OrdinalIgnoreCase)).OrderBy(k => k))
+        Console.WriteLine(k);
+    return;
+}
 if (iconMode)
 {
     var names = File.ReadAllLines(args[2]).Select(l => l.Split('	')).Where(p => p.Length == 2)

@@ -1,0 +1,59 @@
+Brynmoor
+Fellhollow
+Ghornfell
+Dowdun Reach
+Umbral Sands
+Scorned Wilderness
+Whispering Swamp
+Stormtouched Highlands
+Bloodblight Swamp
+Temple Woods
+Bramblemead Valley
+Fractured Plains
+Lodestone
+Lodestones
+Anima Vent
+Anima Vents
+Concentrated Anima Vent
+Rune Essence Geyser
+Health Shrine
+Graveyard
+Chest
+Chests
+Buried Chest
+Loot Chest
+Vault
+Vaults
+Vault Entrance
+Fishing
+Fishing Spot
+Fishing Spots
+Kebbit Burrow
+Kebbit Burrows
+Agility Course
+Agility
+Nightmare Crucible
+Teleporter
+Portal
+Dungeon
+Shrine
+Altar
+Lore
+Lore Item
+Bed
+Map
+Quest
+Earth Rune
+Mining
+Woodcutting
+Gathering
+Ore
+Enemies
+Creatures
+NPC
+Base
+Raid
+Energy Barrier
+Anima Deposit
+Fight Caves
+Eldergate

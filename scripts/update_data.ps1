@@ -3,7 +3,7 @@
 #   pwsh scripts/update_data.ps1 -GameDir "D:\SteamLibrary\steamapps\common\RSDragonwilds"
 #
 # Needs: .NET 10 SDK, Python 3, and a mappings file (in game with UE4SS press Ctrl+Numpad6 once).
-# Updates: data/Scripts/icon_paths.lua, data/Scripts/world_L_World.lua, data/web/data/icons/*.png
+# Updates: data/Scripts/icon_paths.lua, world_L_World.lua, names.lua, data/web/data/icons/*.png
 # Not updated: the map background images (exported in game by the mod itself, see README).
 param(
     [Parameter(Mandatory = $true)][string]$GameDir,
@@ -40,6 +40,10 @@ Write-Host '== world data'
 & $Exe $Paks $Usmap (Join-Path $Tmp 'world') (Join-Path $Root 'mod\LiveMap\Scripts\config.lua')
 if ($LASTEXITCODE) { throw 'world extraction failed' }
 Copy-Item (Join-Path $Tmp 'world\world_L_World.lua') (Join-Path $Root 'data\Scripts\world_L_World.lua') -Force
+
+Write-Host '== official names (en / zh-CN)'
+& $Exe loc $Paks $Usmap (Join-Path $Root 'data\Scripts\names.lua') (Join-Path $Root 'mod\LiveMap\tools\loc_terms.txt')
+if ($LASTEXITCODE) { throw 'name extraction failed' }
 
 Write-Host '== icons'
 $List = Join-Path $Tmp 'icons.tsv'

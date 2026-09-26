@@ -3,12 +3,7 @@
 
 local M = {}
 
-local RUNE_LABEL = {
-    Law = "律法", Water = "水", Air = "气", Earth = "土", Fire = "火", Astral = "星界", Nature = "自然",
-    Mind = "心灵", Body = "躯体", Chaos = "混沌", Death = "死亡", Blood = "血", Soul = "灵魂", Cosmic = "宇宙",
-}
-
-local opts          -- { dataDir, valid, log, paths, config, catDefaults }
+local opts          -- { dataDir, valid, log, paths, config, catDefaults, names }
 local iconDir
 local state = {}    -- [iconName] = "ok" | { tries = n, next = clock }
 local queue = {}
@@ -89,7 +84,7 @@ function M.resolve(actor, cls, cat, extra)
         end
         if rune then
             local icon = "T_Icon_Rune_" .. rune
-            return opts.paths[icon] and icon or opts.catDefaults[cat], (RUNE_LABEL[rune] or rune) .. "符文"
+            return opts.paths[icon] and icon or opts.catDefaults[cat]
         end
     end
     local key = cat .. "|" .. cls
@@ -102,7 +97,12 @@ function M.resolve(actor, cls, cat, extra)
                 break
             end
         end
-        if not cached and JOURNAL_CATS[cat] then cached = creatureIcon(cls) or false end
+        if not cached and JOURNAL_CATS[cat] then
+            -- 优先用图鉴条目里记录的怪物数据类 (BP_AI_<core>_Data) 精确对应, 再退回按名字模糊匹配
+            local core = opts.creatureCore and opts.creatureCore(cls)
+            local n = core and opts.names and opts.names.creatures[core]
+            cached = (n and n[3] ~= "" and opts.paths[n[3]] and n[3]) or creatureIcon(cls) or false
+        end
         if not cached then cached = opts.catDefaults[cat] or false end
         classCache[key] = cached
     end

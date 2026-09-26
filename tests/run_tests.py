@@ -63,24 +63,38 @@ def test_runtime(mod):
                          ('ore', 2000), ('fishing', 150), ('shrine', 30)]:
         check(counts[cat] >= minimum, f'{cat}: {counts[cat]} (>= {minimum})')
     vents = [p for p in static if p['c'] == 'anima']
-    check(all(p.get('i', '').startswith('T_Icon_Rune_') and p.get('l', '').endswith('符文') for p in vents),
-          'anima vents have rune icon + label')
+    check(all(p.get('i', '').startswith('T_Icon_Rune_') for p in vents), 'anima vents have rune icons')
     geysers = [p for p in static if p['c'] == 'geyser']
     check(all(not p['n'].startswith('BP_OreNode') for p in geysers), 'geysers not swallowed by ore category')
 
+    # 细分: 键是英文名, 中文名在 names.json (优先游戏官方译名)
+    names = load('names.json')
+    zh = names['subs']
     subs = {}
     for p in static:
         if p.get('s'):
             subs.setdefault(p['c'], Counter())[p['s']] += 1
-    check(len(subs.get('anima', {})) == 7, f'anima split by rune: {sorted(subs.get("anima", {}))}')
-    for cat, expect in [('gather', {'灵元树皮', '苦帽菇', '洋葱', '石块'}), ('ore', {'秘银矿', '铁矿', '煤矿', '符文精华'}),
-                        ('stone', {'砂岩', '花岗岩', '石头'}), ('chest', {'野外宝箱 T6', '埋藏宝箱 T7'}),
-                        ('fishing', {'网捕 · Fellhollow', '钓竿 · Brynmoor'}), ('teleporter', {'宝库入口'})]:
-        got = set(subs.get(cat, {}))
-        check(expect <= got, f'{cat} sub-categories include {sorted(expect)}' + ('' if expect <= got else f' (got {sorted(got)[:12]})'))
+    runes = {s: zh.get(s) for s in subs.get('anima', {})}
+    check(len(runes) == 7 and runes.get('Law Rune') == '法则符文', f'anima split by rune (official names): {runes}')
+    for cat, expect in [('gather', {'Onion': '洋葱', 'Anima-infused Bark': '灵蕴树皮', 'Stone': '石头'}),
+                        ('ore', {'Mithril Ore': '秘银矿', 'Iron Ore': '铁矿石', 'Coal': '煤', 'Rune Essence': '符文精粹'}),
+                        ('stone', {'Sandstone': '砂石', 'Granite': '花岗岩'}),
+                        ('chest', {'Chest T6': '野外宝箱 T6', 'Buried Chest T7': '埋藏宝箱 T7'}),
+                        ('fishing', {'Net · Fellhollow': '网捕 · 沉落谷', 'Rod · Brynmoor': '钓竿 · 布林莫尔'}),
+                        ('teleporter', {'Vault Entrance': '穹殿入口'})]:
+        got = {s: zh.get(s) for s in subs.get(cat, {}) if s in expect}
+        check(got == expect, f'{cat} sub-categories {expect}' + ('' if got == expect else f' (got {got})'))
     for cat, c in subs.items():
-        other = c.get('其他', 0)
+        other = c.get('Other', 0)
         check(other <= sum(c.values()) * 0.02, f'{cat}: {len(c)} sub-categories, {other} unmatched')
+    spawn = subs.get('spawn', Counter())
+    translated = sum(n for s, n in spawn.items() if zh.get(s, s) != s)
+    check(translated >= 0.95 * sum(spawn.values()),
+          f'monster spawns with official Chinese names: {translated}/{sum(spawn.values())}')
+    check(names['icons'].get('T_Icon_Rune_Law') == ['Law Rune', '法则符文'], 'official item names by icon in names.json')
+    cats_json = load('categories.json')
+    check(all(c.get('en') and c['en'] != c['label'] or c['id'] == 'npc' for c in cats_json),
+          'every category has an English label')
 
     dyn = load('pois.json')['worlds'].get('L_World', [])
     names = [p['n'] for p in dyn]

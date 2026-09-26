@@ -1,5 +1,5 @@
 @echo off
-rem Regenerate LiveMap full-map data (Scripts\world_L_World.lua) from the game files.
+rem Regenerate LiveMap full-map data (Scripts\world_L_World.lua) and official names (Scripts\names.lua) from the game files.
 rem Run this after a game update. It needs a mappings file: in game press Ctrl+Numpad6 once (UE4SS writes *.usmap).
 setlocal
 set "TOOLS=%~dp0"
@@ -24,5 +24,11 @@ if errorlevel 1 (
     exit /b 1
 )
 copy /y "%TOOLS%out\world_L_World.lua" "%MOD%\Scripts\world_L_World.lua" >nul
+"%TOOLS%WorldExtract.exe" loc "%PAKS%" "%USMAP%" "%MOD%\Scripts\names.lua" "%TOOLS%loc_terms.txt"
+if errorlevel 1 (
+    echo Name extraction failed.
+    pause
+    exit /b 1
+)
 echo Done. Restart the game to load the new data.
 pause

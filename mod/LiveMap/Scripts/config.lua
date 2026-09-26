@@ -2,6 +2,7 @@
 -- classes: 属于该分类的类名 (蓝图类以 _C 结尾, 也可以写原生父类名, 例如 WorldChest). 子类自动算进来.
 --   一个物体同时匹配多个分类时, 取继承链上离它最近的那个 (例如符文精华泉也是 OreNode, 但归到 geyser).
 --   全地图数据 (world_L_World.lua) 由 tools 里的 WorldExtract 从游戏资源提取, 带有每个类的父类链.
+-- label / en: 中文 / 英文名称 (网页可切换语言; 中文尽量用游戏官方译名)
 -- hidden: 网页里默认隐藏 (数量很多的分类)
 -- icon: 该分类的默认图标 (游戏贴图名, 见 Scripts/icon_paths.lua)
 -- 不知道类名时: 游戏里按 Ctrl+F8 导出当前加载的所有 Actor 类名到 Mods/LiveMap/web/data/classes.txt
@@ -17,51 +18,51 @@ return {
     IconSize = 64,              -- 导出图标的像素尺寸
 
     Categories = {
-        { id = "lodestone", label = "传送石", color = "#4fc3f7", icon = "T_LodestoneMapIcon", classes = {
+        { id = "lodestone", label = "磁石", en = "Lodestones", color = "#4fc3f7", icon = "T_LodestoneMapIcon", classes = {
             "WorldLodestone", "BP_WorldLodestone_C", "BP_BaseBuilding_Lodestone_C" } },
-        { id = "respawn", label = "重生点/床", color = "#81c784", icon = "T_NavIcons_Bed", classes = {
+        { id = "respawn", label = "复活点/床铺", en = "Respawn & Beds", color = "#81c784", icon = "T_NavIcons_Bed", classes = {
             "Graveyard", "BP_BaseBuilding_Bed_C", "BP_BaseBuilding_BedRoll_C", "BP_BaseBuilding_Decoration_UmS_Bed_01_C",
             "BP_CustomSpawnPoint_C" } },
-        { id = "grave", label = "墓碑(死亡掉落)", color = "#e57373", icon = "T_NavIcons_Gravestone", classes = {
+        { id = "grave", label = "墓碑(死亡掉落)", en = "Gravestones", color = "#e57373", icon = "T_NavIcons_Gravestone", classes = {
             "BP_PlayerGravestone_C" } },
-        { id = "anima", label = "灵元泉", color = "#b388ff", icon = "T_Icon_Rune_Essence", classes = {
+        { id = "anima", label = "灵元泉", en = "Anima Vents", color = "#b388ff", icon = "T_Icon_Rune_Essence", classes = {
             "AnimaVent", "BP_AnimaVent_C" } },
-        { id = "geyser", label = "符文精华泉", color = "#80deea", icon = "T_Icon_Journal_Rune_Geyser", classes = {
+        { id = "geyser", label = "符文精粹喷泉", en = "Rune Essence Geysers", color = "#80deea", icon = "T_Icon_Journal_Rune_Geyser", classes = {
             "RuneEssenceGeyser", "BP_RuneEssenceGeyser_Base_C" } },
-        { id = "teleporter", label = "传送门/入口", color = "#ba68c8", icon = "T_NavIcons_DungeonEntrance", classes = {
+        { id = "teleporter", label = "传送门/入口", en = "Portals & Entrances", color = "#ba68c8", icon = "T_NavIcons_DungeonEntrance", classes = {
             "BP_InteractablePlayerTeleporter_C", "BP_InteractablePlayerTeleporter_RequiresQuestStep_C",
             "BP_InteractablePlayerTeleporter_Locked_C", "BP_DungeonTeleport_C", "BP_DK_VautEntrance_C",
             "BP_DK_VautEntrance_Locked_C", "BP_ExitFromDungeonDoor_C", "BP_LibraryQuestBarrierTeleporter_C",
             "BP_InteractableKuldraTeleportOut_C", "BP_SMBG_HomeTeleport_C" } },
-        { id = "chest", label = "宝箱", color = "#ffd54f", icon = "T_Icon_Loot_Chest_01", classes = {
+        { id = "chest", label = "宝箱", en = "Chests", color = "#ffd54f", icon = "T_Icon_Loot_Chest_01", classes = {
             "WorldChest", "BP_LootChest_Base_C", "BP_BuriedChest_Base_C", "BP_Dungeon_Treasure_Chest_C", "BP_DR_BuriedChest_C" } },
-        { id = "shrine", label = "神殿/祭坛", color = "#ff8a65", icon = "T_HealthAltar_Map_Discovered", classes = {
+        { id = "shrine", label = "神殿/祭坛", en = "Shrines & Altars", color = "#ff8a65", icon = "T_HealthAltar_Map_Discovered", classes = {
             "HealthShrine", "AnimaDepositPoint", "BP_HealthShrine_C", "BP_BaseBossAltar_C", "BP_AnimaDepositPoint_C",
             "BP_Crafting_Rune_Altar_C", "BP_Dowdun_Altar_01_C" } },
-        { id = "agility", label = "敏捷赛道/兔子地道", color = "#aed581", icon = "T_Agility_NewCourse", classes = {
+        { id = "agility", label = "敏捷试炼赛道/凯比兔地道", en = "Agility Courses & Kebbit Burrows", color = "#aed581", icon = "T_Agility_NewCourse", classes = {
             "AgilityCourseStarter", "KebbitBurrow" } },
-        { id = "ore", label = "金属矿/精华石", color = "#ffb74d", icon = "T_Map_Icon_Ore", classes = {
+        { id = "ore", label = "矿石/精粹石", en = "Ores & Essence", color = "#ffb74d", icon = "T_Map_Icon_Ore", classes = {
             "OreNode", "BP_MiningRock_RuneEssence_Static_Base_C",
             "BP_DivineRock_Adamantite_C", "BP_DivineRock_Blurite_C", "BP_DivineRock_Clay_C", "BP_DivineRock_Coal_C",
             "BP_DivineRock_Copper_C", "BP_DivineRock_Gold_C", "BP_DivineRock_Iron_C", "BP_DivineRock_Mithril_C",
             "BP_DivineRock_Runite_C", "BP_DivineRock_Silver_C", "BP_DivineRock_Tin_C" } },
-        { id = "stone", label = "石料", color = "#a1887f", icon = "T_Icon_Resource_Stone", hidden = true, classes = {
+        { id = "stone", label = "石料", en = "Stone", color = "#a1887f", icon = "T_Icon_Resource_Stone", hidden = true, classes = {
             "BP_MiningRock_Base_C" } },
-        { id = "fishing", label = "钓鱼点", color = "#4db6ac", icon = "T_Icon_Fishing", classes = {
+        { id = "fishing", label = "钓鱼点", en = "Fishing Spots", color = "#4db6ac", icon = "T_Icon_Fishing", classes = {
             "FishingNodeV2", "BP_FishingNodeV2_Net_Base_C", "BP_FishingNodeV2_Rod_Base_C" } },
-        { id = "lore", label = "传说物品", color = "#f06292", icon = "T_Icon_Journal_Lore_Scraps", classes = { "BP_LoreItem_C" } },
-        { id = "gather", label = "采集物", color = "#9ccc65", icon = "T_Map_Icon_Plant", hidden = true, classes = {
+        { id = "lore", label = "传说物品", en = "Lore", color = "#f06292", icon = "T_Icon_Journal_Lore_Scraps", classes = { "BP_LoreItem_C" } },
+        { id = "gather", label = "采集物", en = "Gatherables", color = "#9ccc65", icon = "T_Map_Icon_Plant", hidden = true, classes = {
             "GatherableResource" } },
-        { id = "spawn", label = "怪物刷新点", color = "#e57373", icon = "T_Map_Icon_Animal", hidden = true, classes = {
+        { id = "spawn", label = "怪物刷新点", en = "Monster Spawns", color = "#e57373", icon = "T_Map_Icon_Animal", hidden = true, classes = {
             "AISpawnPoint" } },
-        { id = "base", label = "基地建筑", color = "#90a4ae", icon = "T_Map_Icon_Base", classes = {
+        { id = "base", label = "基地建筑", en = "Base Buildings", color = "#90a4ae", icon = "T_Map_Icon_Base", classes = {
             "BP_BaseBuilding_Chest_C", "BP_BaseBuilding_Chest_Iron_C", "BP_BaseBuilding_Chest_Small_C",
             "BP_BaseBuilding_PersonalChest_C", "BP_BaseBuilding_Campfire_C" } },
         -- landmark 来自游戏大地图自带标记; npc 另外还包括 Character 扫描到的 BP_NPC_ 角色; creature 来自 Character 扫描
-        { id = "landmark", label = "游戏地图标记", color = "#ffe082", icon = "T_NavIcons_Marker", classes = {} },
-        { id = "npc", label = "NPC/任务互动", color = "#fff176", icon = "T_Map_Primary_Quest_Icon_NPC", classes = {
+        { id = "landmark", label = "游戏地图标记", en = "Game Map Markers", color = "#ffe082", icon = "T_NavIcons_Marker", classes = {} },
+        { id = "npc", label = "NPC/任务互动", en = "NPCs & Quest Objects", color = "#fff176", icon = "T_Map_Primary_Quest_Icon_NPC", classes = {
             "InteractableNPC" } },
-        { id = "creature", label = "敌人/生物", color = "#ef5350", icon = "T_Map_Icon_Animal", hidden = true, classes = {} },
+        { id = "creature", label = "敌人/生物", en = "Creatures", color = "#ef5350", icon = "T_Map_Icon_Animal", hidden = true, classes = {} },
     },
 
     -- 按类名匹配图标 (Lua 模式, 从上往下第一条命中生效; cat 限定只对这些分类生效, 空格分隔); 没命中就用分类默认图标

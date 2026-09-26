@@ -6,6 +6,7 @@ A [UE4SS](https://github.com/UE4SS-RE/RE-UE4SS) Lua mod for **RuneScape: Dragonw
 (`http://localhost:8765/`) while you play.
 
 - Your and your party's position, heading and trail, on top of the game's own world map
+- English and Chinese UI using the game's official item / creature / region names; every layer can be split into sub-categories
 - **Every** lodestone, anima vent (icon by rune type), rune essence geyser, chest, teleporter / vault entrance,
   shrine, graveyard, agility course / kebbit burrow, ore node, fishing spot, lore item and NPC on the whole map
   — about 14,000 points, using the game's own icons
@@ -31,7 +32,7 @@ Full instructions (English and Chinese) are in [packaging/README.txt](packaging/
 | Path | Contents |
 |---|---|
 | `mod/LiveMap/` | Mod source: `Scripts/*.lua` (UE4SS Lua), `web/index.html` (map page), `server.ps1` (local web server) |
-| `data/` | Data extracted from the game, merged into the mod when packaging: full-map actors (`Scripts/world_L_World.lua`), icon path table, map background images, 838 icons |
+| `data/` | Data extracted from the game, merged into the mod when packaging: full-map actors (`Scripts/world_L_World.lua`), official English/Chinese names from the game's language files (`Scripts/names.lua`), icon path table, map background images, 838 icons |
 | `tools/WorldExtract/` | .NET 10 extractor built on [CUE4Parse](https://github.com/FabianFG/CUE4Parse): World Partition actors → Lua data, textures → PNG icons |
 | `external/CUE4Parse/` | CUE4Parse git submodule (pinned) |
 | `scripts/` | `build_package.py` (zip / dev install), `update_data.ps1` (regenerate `data/`), IoStore `.utoc` index reader |
@@ -74,7 +75,7 @@ python scripts/build_package.py --version v1.0.0 --tools-dir build/tools
 
 1. In game (with UE4SS) press **Ctrl+Numpad6** once to write a `.usmap` mappings file.
 2. `pwsh scripts/update_data.ps1 -GameDir "<game folder>"` — regenerates the icon path table, the full-map actor
-   data and the icons in `data/`.
+   data, the official names and the icons in `data/`.
 3. If the world map changed, delete `data/web/data/map_*.png` and `maps_*.json/.lua`, install the mod, open the
    in-game map once (the mod exports it), and copy the new files from the mod's `web/data/` back into `data/web/data/`.
 4. `python tests/run_tests.py`, commit.

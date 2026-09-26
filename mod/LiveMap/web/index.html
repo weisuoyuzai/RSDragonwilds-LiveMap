@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>龙之荒野 实时地图</title>
+<title>Dragonwilds Live Map</title>
 <style>
   :root {
     --bg: #11151a; --panel: #1a2027; --panel-2: #222a33; --line: #2e3844;
@@ -58,43 +58,44 @@
   #tip .s { color: var(--muted); font-size: 12px; word-break: break-all; }
   .hint { color: var(--muted); font-size: 12px; }
   #toggle { background: none; border: none; color: var(--muted); padding: 0 4px; font-size: 16px; }
+  #lang { padding: 1px 6px; font-size: 11px; color: var(--muted); }
   @media (max-width: 600px) { #panel { width: calc(100% - 24px); max-height: 50%; } }
 </style>
 </head>
 <body>
 <canvas id="map"></canvas>
 <div id="panel">
-  <header><span class="dot" id="conn"></span><h1>龙之荒野 实时地图</h1><button id="toggle" title="收起/展开">☰</button></header>
-  <div class="status" id="status">等待游戏数据…</div>
+  <header><span class="dot" id="conn"></span><h1 data-i18n="title"></h1><button id="lang"></button><button id="toggle" data-i18n-title="collapse">☰</button></header>
+  <div class="status" id="status" data-i18n="waiting"></div>
 
-  <h2>图层</h2>
+  <h2 data-i18n="layers"></h2>
   <div id="cats"></div>
-  <div class="row"><button id="allOn">全部显示</button><button id="allOff">全部隐藏</button></div>
+  <div class="row"><button id="allOn" data-i18n="showAll"></button><button id="allOff" data-i18n="hideAll"></button></div>
 
-  <h2>筛选</h2>
-  <input type="text" id="search" placeholder="按类名搜索, 例如 Tier5 / Iron">
-  <div class="row"><label class="chk"><input type="checkbox" id="showTrail" checked> 显示移动轨迹</label></div>
-  <div class="row"><label class="chk"><input type="checkbox" id="showLabels"> 显示名称</label></div>
-  <div class="row"><span class="hint">图标大小</span><input type="range" id="iconScale" min="0.6" max="2" step="0.1" value="1"></div>
+  <h2 data-i18n="filter"></h2>
+  <input type="text" id="search" data-i18n-ph="searchPh">
+  <div class="row"><label class="chk"><input type="checkbox" id="showTrail" checked> <span data-i18n="trail"></span></label></div>
+  <div class="row"><label class="chk"><input type="checkbox" id="showLabels"> <span data-i18n="labels"></span></label></div>
+  <div class="row"><span class="hint" data-i18n="iconSize"></span><input type="range" id="iconScale" min="0.6" max="2" step="0.1" value="1"></div>
 
-  <h2>视图</h2>
+  <h2 data-i18n="view"></h2>
   <div class="row">
-    <button id="follow" class="active">跟随玩家</button>
-    <button id="fit">显示全部</button>
+    <button id="follow" class="active" data-i18n="follow"></button>
+    <button id="fit" data-i18n="fitAll"></button>
   </div>
   <div class="row">
-    <button id="rotate">旋转 90°</button>
-    <button id="flip">镜像</button>
+    <button id="rotate" data-i18n="rotate"></button>
+    <button id="flip" data-i18n="mirror"></button>
   </div>
 
-  <h2>底图</h2>
-  <div class="row"><label class="chk"><input type="checkbox" id="showMap" checked> 显示游戏地图</label></div>
-  <div class="row"><span class="hint">透明度</span><input type="range" id="imgAlpha" min="0" max="1" step="0.05" value="1"></div>
-  <p class="hint">游戏地图由模组在你第一次打开游戏内大地图时自动导出, 并按坐标精确对齐; 进入地下城范围会自动切换地下城地图。</p>
-  <h2>自定义底图</h2>
-  <div class="row"><button id="pickImg">选择地图图片…</button><input type="file" id="imgFile" accept="image/*" hidden></div>
-  <div class="row"><button id="align">对齐底图</button><button id="clearImg">移除</button></div>
-  <p class="hint">可选: 叠加你自己的图片。点“对齐底图”后拖动/滚轮缩放图片, 让标记与地图重合。</p>
+  <h2 data-i18n="basemap"></h2>
+  <div class="row"><label class="chk"><input type="checkbox" id="showMap" checked> <span data-i18n="showMap"></span></label></div>
+  <div class="row"><span class="hint" data-i18n="opacity"></span><input type="range" id="imgAlpha" min="0" max="1" step="0.05" value="1"></div>
+  <p class="hint" data-i18n="mapHint"></p>
+  <h2 data-i18n="customMap"></h2>
+  <div class="row"><button id="pickImg" data-i18n="pickImg"></button><input type="file" id="imgFile" accept="image/*" hidden></div>
+  <div class="row"><button id="align" data-i18n="align"></button><button id="clearImg" data-i18n="remove"></button></div>
+  <p class="hint" data-i18n="customHint"></p>
 </div>
 <div id="tip"></div>
 
@@ -106,6 +107,45 @@
     get(k, d) { try { const v = localStorage.getItem('livemap.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
     set(k, v) { try { localStorage.setItem('livemap.' + k, JSON.stringify(v)); } catch {} },
   };
+
+  // ---------- 语言 ----------
+  const I18N = {
+    zh: {
+      title: '龙之荒野 实时地图', collapse: '收起/展开', waiting: '等待游戏数据…', layers: '图层', showAll: '全部显示',
+      hideAll: '全部隐藏', filter: '筛选', searchPh: '按名称或类名搜索, 例如 秘银 / Tier5', trail: '显示移动轨迹',
+      labels: '显示名称', iconSize: '图标大小', view: '视图', follow: '跟随玩家', fitAll: '显示全部', rotate: '旋转 90°',
+      mirror: '镜像', basemap: '底图', showMap: '显示游戏地图', opacity: '透明度',
+      mapHint: '游戏地图由模组在你第一次打开游戏内大地图时自动导出, 并按坐标精确对齐; 进入地下城范围会自动切换地下城地图。',
+      customMap: '自定义底图', pickImg: '选择地图图片…', align: '对齐底图', remove: '移除',
+      customHint: '可选: 叠加你自己的图片。点“对齐底图”后拖动/滚轮缩放图片, 让标记与地图重合。',
+      expand: '展开细分', selAll: '全选', selNone: '全不选', world: '世界', coords: '坐标', noPlayer: '未找到玩家',
+      players: '玩家', points: '地图点', disconnected: '未连接 — 游戏没在运行或模组未加载', grid: '格子',
+      player: '玩家', you: '（你）', dist: '距离', scanned: '游戏里扫描到', langBtn: 'EN',
+    },
+    en: {
+      title: 'Dragonwilds Live Map', collapse: 'Collapse / expand', waiting: 'Waiting for game data…', layers: 'Layers',
+      showAll: 'Show all', hideAll: 'Hide all', filter: 'Filter', searchPh: 'Search by name or class, e.g. Mithril / Tier5',
+      trail: 'Show trail', labels: 'Show names', iconSize: 'Icon size', view: 'View', follow: 'Follow player',
+      fitAll: 'Show whole map', rotate: 'Rotate 90°', mirror: 'Mirror', basemap: 'Base map', showMap: 'Show game map',
+      opacity: 'Opacity',
+      mapHint: 'The game map is exported by the mod the first time you open the in-game map and aligned by world coordinates; dungeon maps switch in automatically.',
+      customMap: 'Custom image', pickImg: 'Choose image…', align: 'Align image', remove: 'Remove',
+      customHint: 'Optional: overlay your own image. Click “Align image”, then drag / scroll to line it up with the markers.',
+      expand: 'Show sub-categories', selAll: 'All', selNone: 'None', world: 'World', coords: 'Position',
+      noPlayer: 'Player not found', players: 'Players', points: 'Points',
+      disconnected: 'Not connected — the game is not running or the mod is not loaded', grid: 'Grid', player: 'Player',
+      you: ' (you)', dist: 'distance', scanned: 'scanned in game', langBtn: '中文',
+    },
+  };
+  let lang;
+  try { lang = JSON.parse(localStorage.getItem('livemap.lang')); } catch {}
+  if (lang !== 'zh' && lang !== 'en') lang = /^zh/i.test(navigator.language || '') ? 'zh' : 'en';
+  const t = k => I18N[lang][k] ?? I18N.zh[k] ?? k;
+  let names = { subs: {}, icons: {} }, namesVersion = -1;   // 细分中文名, 图标的官方中英文名 (模组写的 names.json)
+  const zh = () => lang === 'zh';
+  const catLabel = c => c ? (zh() ? c.label : (c.en || c.label)) : '';
+  const subLabel = s => zh() ? (names.subs[s] || s) : s;
+  const iconLabel = i => { const n = i && names.icons[i]; return n ? n[zh() ? 1 : 0] : null; };
 
   let categories = [], catById = {};
   let live = null, pois = {}, poiVersion = -1, lastOk = 0;
@@ -125,12 +165,14 @@
 
   // 游戏地图自带标记的中文名 (按贴图名)
   const MARKER_NAMES = [
-    [/DungeonEntrance/, '地牢入口'], [/HealthAltar_Map_Used/, '生命神殿 (已使用)'], [/HealthAltar/, '生命神殿'],
-    [/Agility/, '敏捷赛道'], [/Kebbit_Tunnel_Blocked/, '兔子地道 (堵住)'], [/Kebbit_Tunnel/, '兔子地道'],
-    [/NMC/, '梦魇熔炉'], [/FightCaves/, '战斗洞窟'], [/QuestMarker/, '任务目标'], [/Eldergate/, '长者之门'],
-    [/MapTower/, '地图塔'], [/BossAlter/, '首领祭坛'], [/Lodestone/, '传送石'], [/Gravestone/, '墓碑'], [/Bed/, '床'],
+    [/DungeonEntrance/, '地牢入口', 'Dungeon Entrance'], [/HealthAltar_Map_Used/, '生命神殿 (已使用)', 'Health Shrine (used)'],
+    [/HealthAltar/, '生命神殿', 'Health Shrine'], [/Agility/, '敏捷试炼赛道', 'Agility Course'],
+    [/Kebbit_Tunnel_Blocked/, '凯比兔地道 (堵住)', 'Kebbit Burrow (blocked)'], [/Kebbit_Tunnel/, '凯比兔地道', 'Kebbit Burrow'],
+    [/NMC/, '梦魇熔炉', 'Nightmare Crucible'], [/FightCaves/, '战斗洞窟', 'Fight Caves'], [/QuestMarker/, '任务目标', 'Quest Target'],
+    [/Eldergate/, '长者之门', 'Eldergate'], [/MapTower/, '地图塔', 'Map Tower'], [/BossAlter/, '首领祭坛', 'Boss Altar'],
+    [/Lodestone/, '磁石', 'Lodestone'], [/Gravestone/, '墓碑', 'Gravestone'], [/Bed/, '床铺', 'Bed'],
   ];
-  const markerName = n => (MARKER_NAMES.find(([re]) => re.test(n)) || [0, null])[1];
+  const markerName = n => { const m = MARKER_NAMES.find(([re]) => re.test(n)); return m ? (zh() ? m[1] : m[2]) : null; };
   // 游戏里本来就是地图标记的贴图直接画; 物品图标画成徽章
   const isMapIcon = n => /^T_(NavIcons|Map_|LodestoneMapIcon|HealthAltar|Agility)/.test(n);
   const SEA = '#2d4a52';
@@ -176,6 +218,10 @@
       }
       if (!categories.length) loadCategories();
       if (live.iconVersion !== iconVersion) loadIcons(live.iconVersion);
+      if (live.namesVersion !== namesVersion) {
+        namesVersion = live.namesVersion;
+        try { names = await getJson('data/names.json'); renderCats(); dirty = true; } catch { namesVersion = -1; }
+      }
       const sk = live.world + '#' + live.staticVersion;
       if (live.staticVersion && sk !== staticKey) {
         staticKey = sk;
@@ -262,17 +308,19 @@
     const list = [];
     for (const p of worldPois()) {
       if (hidden.has(p.c) || subHidden(p)) continue;
-      if (q && !p.n.toLowerCase().includes(q)) continue;
+      if (q && !matches(p, q)) continue;
       list.push(p);
     }
     // 实时数据: 附近的生物/NPC, 游戏地图标记 (任务目标等, 会移动所以不存档)
     for (const c of liveExtras()) {
       if (hidden.has(c.c) || subHidden(c)) continue;
-      if (q && !c.n.toLowerCase().includes(q)) continue;
+      if (q && !matches(c, q)) continue;
       list.push({ ...c, dyn: true });
     }
     return list;
   }
+  const matches = (p, q) => p.n.toLowerCase().includes(q) || titleOf(p).toLowerCase().includes(q) ||
+    (p.s && (p.s.toLowerCase().includes(q) || (names.subs[p.s] || '').includes(q)));
   const liveExtras = () => live ? [...(live.creatures || []), ...(live.markers || [])] : [];
 
   // ---------- 侧栏 ----------
@@ -290,14 +338,14 @@
     const box = $('cats');
     box.innerHTML = '';
     for (const c of categories) {
-      const list = subs[c.id] ? [...subs[c.id]].sort((a, b) => b[1].n - a[1].n) : [];
+      const list = subs[c.id] ? [...subs[c.id]].sort((a, b) => b[1].n - a[1].n || subLabel(a[0]).localeCompare(subLabel(b[0]))) : [];
       const canExpand = list.length > 1;
       const open = canExpand && expanded.has(c.id);
       const el = document.createElement('div');
       el.className = 'cat' + (hidden.has(c.id) ? ' off' : '');
-      el.innerHTML = `<span class="tw" title="展开细分">${canExpand ? (open ? '▾' : '▸') : ''}</span>` +
+      el.innerHTML = `<span class="tw" title="${t('expand')}">${canExpand ? (open ? '▾' : '▸') : ''}</span>` +
         `<span class="sw">${swatch(c.icon, c.color)}</span><span class="name"></span><span class="n">${counts[c.id] || 0}</span>`;
-      el.querySelector('.name').textContent = c.label;
+      el.querySelector('.name').textContent = catLabel(c);
       el.onclick = () => { hidden.has(c.id) ? hidden.delete(c.id) : hidden.add(c.id); store.set('hidden', [...hidden]); renderCats(); dirty = true; };
       if (canExpand) {
         el.querySelector('.tw').onclick = e => {
@@ -311,7 +359,7 @@
 
       const tools = document.createElement('div');
       tools.className = 'subtools';
-      tools.innerHTML = '<a data-a="all">全选</a><a data-a="none">全不选</a>';
+      tools.innerHTML = `<a data-a="all">${t('selAll')}</a><a data-a="none">${t('selNone')}</a>`;
       tools.onclick = e => {
         const a = e.target.dataset.a; if (!a) return;
         for (const [name] of list) a === 'all' ? hiddenSub.delete(c.id + '|' + name) : hiddenSub.add(c.id + '|' + name);
@@ -324,7 +372,7 @@
         const row = document.createElement('div');
         row.className = 'cat sub' + (hidden.has(c.id) || hiddenSub.has(key) ? ' off' : '');
         row.innerHTML = `<span class="sw">${swatch(e.icon, c.color)}</span><span class="name"></span><span class="n">${e.n}</span>`;
-        row.querySelector('.name').textContent = name;
+        row.querySelector('.name').textContent = subLabel(name);
         row.onclick = () => {
           if (hidden.has(c.id)) {   // 分类整体隐藏时点细分: 打开分类, 只显示这一项
             hidden.delete(c.id); store.set('hidden', [...hidden]);
@@ -348,10 +396,10 @@
     const me = (live.players || []).find(p => p.me) || (live.players || [])[0];
     const n = worldPois().length;
     $('status').innerHTML = on
-      ? `世界 <b>${esc(live.world)}</b><br>` +
-        (me ? `坐标 <b>${(me.x / 100).toFixed(0)}, ${(me.y / 100).toFixed(0)}, ${(me.z / 100).toFixed(0)}</b> m<br>` : '未找到玩家<br>') +
-        `玩家 <b>${(live.players || []).length}</b> · 记录点 <b>${n}</b>`
-      : '<span style="color:var(--bad)">未连接 — 游戏没在运行或模组未加载</span>';
+      ? `${t('world')} <b>${esc(live.world)}</b><br>` +
+        (me ? `${t('coords')} <b>${(me.x / 100).toFixed(0)}, ${(me.y / 100).toFixed(0)}, ${(me.z / 100).toFixed(0)}</b> m<br>` : t('noPlayer') + '<br>') +
+        `${t('players')} <b>${(live.players || []).length}</b> · ${t('points')} <b>${n}</b>`
+      : `<span style="color:var(--bad)">${t('disconnected')}</span>`;
   }
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -373,7 +421,7 @@
     for (let v = Math.floor(v0 / step) * step; v <= v1; v += step) { const [, y] = mapToScreen(0, v); ctx.moveTo(0, y); ctx.lineTo(W(), y); }
     ctx.stroke();
     ctx.fillStyle = '#8c99a8'; ctx.font = '11px sans-serif';
-    ctx.fillText(`格子 ${step / 100} m`, W() - 90, H() - 12);
+    ctx.fillText(`${t('grid')} ${step / 100} m`, W() - 90, H() - 12);
   }
 
   function drawCompass() {
@@ -476,12 +524,13 @@
   }
 
   const prettyName = n => n.replace(/^BP_/, '').replace(/_C$/, '').replace(/_/g, ' ');
-  // 点的显示名: 游戏地图标记用中文名, 有附加说明(如符文类型)的带上说明
+  // 点的显示名: "分类 · 细分" (细分/物品名来自游戏官方中英文); 游戏地图标记用标记名
   function titleOf(p) {
-    const cat = catById[p.c];
     if (p.c === 'landmark') return markerName(p.n) || prettyName(p.n);
-    if (p.l || p.s) return (cat ? cat.label + ' · ' : '') + (p.l || p.s);
-    return prettyName(p.n);
+    const cat = catLabel(catById[p.c]);
+    let name = p.s ? subLabel(p.s) : null;
+    if (!name && p.c === 'npc') name = (p.i && p.i.startsWith('T_Icon_Journal_') && iconLabel(p.i)) || prettyName(p.n).replace(/^NPC /, '');
+    return cat && name ? `${cat} · ${name}` : (cat || name || prettyName(p.n));
   }
 
   // 画一个标记, 返回半径 (用于悬停判定和文字偏移)
@@ -580,12 +629,12 @@
     const me = live && (live.players || []).find(q => q.me);
     const dist = me ? Math.hypot(p.x - me.x, p.y - me.y, p.z - me.z) / 100 : null;
     tip.innerHTML = p.player
-      ? `<div class="t">${esc(p.name || '玩家')}${p.me ? '（你）' : ''}</div>`
+      ? `<div class="t">${esc(p.name || t('player'))}${p.me ? t('you') : ''}</div>`
       : `<div class="t" style="color:${cat ? cat.color : '#fff'}">${(() => { const ic = iconOf(p); return ic ? `<img src="${ic.img.src}" alt="">` : ''; })()}` +
-        `<span>${esc(p.c === 'landmark' ? titleOf(p) : (cat ? cat.label : p.c) + ' · ' + (p.l || p.s || prettyName(p.n)))}</span></div>` +
+        `<span>${esc(titleOf(p))}</span></div>` +
         `<div class="s">${esc(p.n)}</div>` +
-        `<div class="s">坐标 ${(p.x / 100).toFixed(0)}, ${(p.y / 100).toFixed(0)}, ${(p.z / 100).toFixed(0)} m` +
-        (dist != null ? ` · 距离 ${dist.toFixed(0)} m` : '') + (p.dyn ? '' : p.st ? '' : ' · 游戏里扫描到') + `</div>`;
+        `<div class="s">${t('coords')} ${(p.x / 100).toFixed(0)}, ${(p.y / 100).toFixed(0)}, ${(p.z / 100).toFixed(0)} m` +
+        (dist != null ? ` · ${t('dist')} ${dist.toFixed(0)} m` : '') + (p.dyn || p.st ? '' : ' · ' + t('scanned')) + `</div>`;
     tip.style.display = 'block';
     tip.style.left = Math.min(x + 14, innerWidth - tip.offsetWidth - 8) + 'px';
     tip.style.top = Math.min(y + 14, innerHeight - tip.offsetHeight - 8) + 'px';
@@ -630,6 +679,21 @@
       try { const r = await fetch(name, { method: 'HEAD' }); if (r.ok) { useImage(name); break; } } catch {}
     }
   })();
+
+  function applyI18n() {
+    document.documentElement.lang = zh() ? 'zh-CN' : 'en';
+    document.title = t('title');
+    for (const el of document.querySelectorAll('[data-i18n]')) el.textContent = t(el.dataset.i18n);
+    for (const el of document.querySelectorAll('[data-i18n-ph]')) el.placeholder = t(el.dataset.i18nPh);
+    for (const el of document.querySelectorAll('[data-i18n-title]')) el.title = t(el.dataset.i18nTitle);
+    $('lang').textContent = t('langBtn');
+  }
+  $('lang').onclick = () => {
+    lang = zh() ? 'en' : 'zh';
+    store.set('lang', lang);
+    applyI18n(); renderCats(); renderStatus(); dirty = true;
+  };
+  applyI18n();
 
   addEventListener('resize', resize);
   resize();

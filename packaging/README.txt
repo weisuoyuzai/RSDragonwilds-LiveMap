@@ -1,10 +1,10 @@
-﻿LiveMap - live web map for RuneScape: Dragonwilds (UE4SS mod)
+LiveMap - live web map for RuneScape: Dragonwilds (UE4SS mod)
 =============================================================
 
 When the game starts, a live map opens in your browser (http://localhost:8765/). It shows:
   - Your and your party's position, facing and movement trail
   - Every lodestone, anima vent (icon by rune type), rune essence geyser, chest,
-    teleporter / vault entrance, shrine / altar, graveyard, agility course / kebbit burrow,
+    portal / vault entrance, shrine / altar, graveyard, agility course / kebbit burrow,
     ore / essence rock, fishing spot, lore item and NPC on the whole map
   - Stone, gatherables, monster spawn points and nearby creatures
     (hidden by default because there are thousands - toggle them in the layer list)
@@ -44,10 +44,15 @@ Start the game - the map page opens in your browser automatically.
 
 Usage
 -----
-- Drag to pan, mouse wheel to zoom. "Follow player", "Show all" and rotate / mirror are in the
-  left panel (the UI is in Chinese: 跟随玩家 = follow player, 显示全部 = show all,
-  旋转 = rotate, 镜像 = mirror, 图标大小 = icon size, 显示名称 = show names).
-- Toggle each layer in the left list, adjust icon size with the slider, search by class name.
+- Drag to pan, mouse wheel to zoom. "Follow player", "Show whole map" and rotate / mirror are in
+  the left panel.
+- The page is available in English and Chinese: use the 中文 / EN button in the title bar
+  (defaults to your browser language). Item, creature and region names are the game's own
+  official English / Chinese names.
+- Toggle each layer in the left list. Click the ▸ in front of a layer to expand its
+  sub-categories (anima vents by rune, gatherables by resource, chests by type and tier,
+  monsters by species, ...) and toggle them individually. Adjust icon size with the slider,
+  search by name.
 - Hover an icon for its name, coordinates and distance from you.
 - When zoomed out, the numerous items are drawn as small colored dots and turn into icons
   as you zoom in.
@@ -65,7 +70,8 @@ After a game update
 -------------------
 If items are missing or in the wrong place after a game update:
   1. In game press Ctrl+Numpad6 once (UE4SS writes a .usmap mappings file into the ue4ss folder).
-  2. Double-click LiveMap\tools\UpdateWorldData.bat and wait about a minute.
+  2. Double-click LiveMap\tools\UpdateWorldData.bat and wait about a minute (it refreshes both the
+     full-map data and the official English / Chinese names).
   3. Restart the game.
 After a major game update UE4SS itself may also need a newer experimental build.
 

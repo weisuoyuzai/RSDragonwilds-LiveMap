@@ -166,21 +166,29 @@ local LastCreatureScan = 0
 local CurrentWorld = "World"
 local Trail = {}
 
+-- 官方中英文名称 (Scripts/names.lua, 由 tools/WorldExtract loc 从游戏语言包生成)
+local Names = { icons = {}, creatures = {}, terms = {} }
+do
+    local ok, t = pcall(dofile, ModDir .. "Scripts\\names.lua")
+    if ok and type(t) == "table" then Names = t end
+end
+local Sub = dofile(ModDir .. "Scripts\\subcats.lua")
+Sub.init(Names)
 local Icons = dofile(ModDir .. "Scripts\\icons.lua")
 do
     local catDefaults = {}
     for _, c in ipairs(Config.Categories) do catDefaults[c.id] = c.icon end
     Icons.init({ dataDir = DataDir, valid = valid, log = log, config = Config, catDefaults = catDefaults,
-        paths = dofile(ModDir .. "Scripts\\icon_paths.lua") })
+        paths = dofile(ModDir .. "Scripts\\icon_paths.lua"), names = Names, creatureCore = Sub.creatureCore })
 end
-local Sub = dofile(ModDir .. "Scripts\\subcats.lua")
+local LastNamesVersion = -1
 local LastIconVersion = -1
 local LastIconProcess = 0
 
 local function writeCategories()
     local cats = {}
     for i, c in ipairs(Config.Categories) do
-        cats[i] = { id = c.id, label = c.label, color = c.color, icon = c.icon, hidden = c.hidden or false }
+        cats[i] = { id = c.id, label = c.label, en = c.en or c.label, color = c.color, icon = c.icon, hidden = c.hidden or false }
         Icons.request(c.icon)
     end
     writeFile(DataDir .. "categories.json", jsonEncode(cats))
@@ -254,8 +262,8 @@ local function loadWorldData(world)
         local cls, x, y, z, extra = a[1], a[2], a[3], a[4], a[5]
         local cat = classify(cls, wd.classes)
         if cat then
-            local icon, label = Icons.resolve(nil, cls, cat, extra)
-            local e = { c = cat, n = cls, x = x, y = y, z = z, i = icon, l = label, s = Sub.subOf(cls, cat, label) }
+            local icon = Icons.resolve(nil, cls, cat, extra)
+            local e = { c = cat, n = cls, x = x, y = y, z = z, i = icon, s = Sub.subOf(cls, cat, icon) }
             wd.static[poiKey(cls, x, y, z)] = e
             local gk = gridKey(cls, math.floor(x / GRID), math.floor(y / GRID))
             wd.grid[gk] = wd.grid[gk] or {}
@@ -272,8 +280,8 @@ local function loadWorldData(world)
                 Pois[world][k] = nil
             elseif p.c ~= "landmark" then
                 p.c = classify(p.n, wd.classes, p.c)
-                p.i, p.l = Icons.resolve(nil, p.n, p.c)
-                p.s = Sub.subOf(p.n, p.c, p.l)
+                p.i, p.l = Icons.resolve(nil, p.n, p.c), nil
+                p.s = Sub.subOf(p.n, p.c, p.i)
             end
         end
         SaveDirty = true
@@ -325,7 +333,7 @@ local function addPoi(world, cat, cls, x, y, z, now, icon, label, keyName)
     if wd and (wd.static[key] or (not keyName and nearStatic(wd, cls, x, y))) then return end
     Pois[world] = Pois[world] or {}
     local p = Pois[world][key]
-    local sub = Sub.subOf(cls, cat, label)
+    local sub = Sub.subOf(cls, cat, icon)
     if not p then
         Pois[world][key] = { c = cat, n = cls, x = x, y = y, z = z, t = now, i = icon, l = label, s = sub }
         PoiDirty = true
@@ -381,7 +389,7 @@ local function scanCharacters(refresh)
                     local cat = cls:find("^BP_NPC_") and "npc" or "creature"
                     local icon = Icons.resolve(nil, cls, cat)
                     Icons.request(icon)
-                    creatures[#creatures + 1] = { c = cat, n = cls, x = x, y = y, z = z, i = icon, s = Sub.subOf(cls, cat) }
+                    creatures[#creatures + 1] = { c = cat, n = cls, x = x, y = y, z = z, i = icon, s = Sub.subOf(cls, cat, icon) }
                 end
             end
         end
@@ -551,6 +559,12 @@ local function tick()
         LastIconProcess = clock
         Icons.process(me, clock, 3)
     end
+    if Sub.version() ~= LastNamesVersion then
+        LastNamesVersion = Sub.version()
+        local icons = {}
+        for k, v in pairs(Names.icons) do icons[k] = { v[1], v[2] } end
+        writeFile(DataDir .. "names.json", jsonEncode({ subs = Sub.zh, icons = icons }))
+    end
     if Icons.version() ~= LastIconVersion then
         LastIconVersion = Icons.version()
         writeFile(DataDir .. "icons.json", jsonEncode(Icons.exported()))
@@ -584,6 +598,7 @@ local function tick()
         poiVersion = PoiVersion,
         iconVersion = LastIconVersion,
         staticVersion = StaticVersion,
+        namesVersion = LastNamesVersion,
         cycleSeconds = math.ceil(#ScanQueue * Config.LiveIntervalMs / 1000),
         players = out,
         creatures = Creatures,
